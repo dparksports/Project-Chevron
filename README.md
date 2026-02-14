@@ -7,8 +7,7 @@
 > A neuro-symbolic architecture that reduces AI code regression from **14.3% to <0.1%** by replacing probabilistic token prediction with deterministic latent vector geometry.
 
 **Dan Park** · [MagicPoint.ai](https://magicpoint.ai) · February 2026
-
-🌐 **Live Website:** [magicpoint.ai](https://magicpoint.ai)
+**Link:** [Download Paper (PDF)](https://github.com/dparksports/dparksports/blob/main/spatial_constraint_protocol-draft-expanded.pdf)
 
 ---
 
