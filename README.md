@@ -8,7 +8,7 @@
 
 **Dan Park** · [MagicPoint.ai](https://magicpoint.ai) · February 2026
 
-🌐 **Live Website:** [dparkwizard.github.io](https://dparkwizard.github.io)
+🌐 **Live Website:** [magicpoint.ai](https://magicpoint.ai)
 
 ---
 
