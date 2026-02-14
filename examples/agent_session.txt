@@ -1,0 +1,91 @@
+PS C:\Users\k2\myagents\chevron> $env:GEMINI_API_KEY = "Your Gemini Key"; python examples\gemini_example.py
+======================================================================
+◬  SCP System Prompt Generated
+   Prompt size: 4113 chars (~657 tokens)
+======================================================================
+
+◬ ─── Gemini Output ───
+
+```python
+from typing import List, Dict, TypedDict
+
+# Define data structures
+class Task(TypedDict):
+    id: str
+    description: str
+    completed: bool
+
+Store = List[Task]
+
+# ◬ TodoStore Module
+class TodoStore:
+
+    @staticmethod
+    def add(task: Task, store: Store) -> Store:
+        """☤ Weaves task into store"""
+        # ☤ Weaver
+        return store + [task]
+
+    @staticmethod
+    def remove(task_id: str, store: Store) -> Store:
+        """Ө Filters out the task matching the ID"""
+        # Ө The Filter
+        return [task for task in store if task['id'] != task_id]
+
+    @staticmethod
+    def list(store: Store) -> List[Task]:
+        """𓂀 Witnesses all tasks without modification"""
+        # 𓂀 The Witness
+        return store
+
+    @staticmethod
+    def complete(task_id: str, store: Store) -> Store:
+        """☾ Folds task state from incomplete → complete"""
+        # ☾ Fold Time
+        def complete_task(task: Task) -> Task:
+            if task['id'] == task_id:
+                return Task(id=task['id'], description=task['description'], completed=True)
+            else:
+                return task
+
+        return [complete_task(task) for task in store]
+```
+
+☤ ─── Weaver Verification ───
+
+## SCP Weaver Verification - TodoStore
+
+Here's the verification report for the provided `TodoStore` module:
+
+**Overall Assessment: PASS**
+
+**Detailed Analysis:**
+
+### 1. Interface Conformance
+- `add(task: Task, store: Store) -> Store`: Implemented correctly.
+- `remove(task_id: str, store: Store) -> Store`: Implemented correctly.
+- `list(store: Store) -> List[Task]`: Implemented correctly.
+- `complete(task_id: str, store: Store) -> Store`: Implemented correctly.
+
+### 2. Dependency Isolation
+- The code only uses `typing` module, which is acceptable as it's for type hinting and doesn't violate the "API only" rule.
+
+### 3. Constraint Compliance
+- [x] All functions are pure: They only operate on their inputs and return new values without side effects.
+- [x] Store is immutable: The functions return new `Store` lists instead of modifying the existing one.
+- [x] No direct database access: The code doesn't interact with any database directly.
+
+### 4. Coupling Detection (W(G) = 0)
+- [x] No global mutable state: No global variables are used.
+- [x] No implicit channels: No file I/O, environment variables, or singletons are used.
+- [x] No undeclared dependencies: All dependencies are explicitly declared (typing).
+- [x] All inter-module communication goes through declared interfaces: The module interacts with the outside world only through its defined methods.   
+
+### 5. Glyph Contract Compliance
+- [x] `add` (☤ - The Weaver): The function adds the new task to the existing store without modifying the original data.
+- [x] `remove` (Ө - The Filter): The function filters out the task with the matching ID without modifying the other tasks.
+- [x] `list` (𓂀 - The Witness): The function returns the store as is, without any modifications.
+- [x] `complete` (☾ - Fold Time): The function correctly updates the `completed` status of the task with the matching ID, creating a new `Task` object and a new `Store` list. It has a reachable base case (the `else` condition in `complete_task`). It does not mutate external state.
+
+**Final Verdict: PASS. W(G) = 0**
+The code adheres to the SCP architecture specification and all constraints.

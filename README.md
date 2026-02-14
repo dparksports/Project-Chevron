@@ -190,6 +190,7 @@ chevron/
 ├── SPEC.md                     # Formal language specification
 ├── README.md                   # This file
 ├── index.html                  # SCP research website with infographics
+├── scp_bridge.py               # ★ SCP → AI Agent system prompt generator
 ├── repl.py                     # Interactive REPL
 ├── run.py                      # File runner (execute .chevron files)
 ├── chevron/                    # The interpreter
@@ -198,12 +199,127 @@ chevron/
 │   ├── lexer.py                # Unicode tokenizer
 │   ├── parser.py               # Recursive-descent AST builder
 │   └── interpreter.py          # Tree-walking executor
-└── examples/                   # Example .chevron programs
+└── examples/                   # Example programs
     ├── hello.chevron            # Hello World
     ├── pipeline.chevron         # Origin → Filter → Witness
     ├── recursion.chevron        # Fold Time countdown
-    └── weave_filter.chevron     # Weave + Filter composition
+    ├── weave_filter.chevron     # Weave + Filter composition
+    └── gemini_example.py        # ★ Complete Gemini integration demo
 ```
+
+---
+
+## Using SCP with AI Agents (Gemini, GPT, Claude)
+
+This is how you actually use Project Chevron to write real software with AI.
+
+### The Core Idea
+
+Instead of pasting your entire codebase (128K tokens) into an AI prompt, you:
+1. **Define your architecture** as an SCP spec (~1,200 tokens)
+2. **Generate a constrained system prompt** for ONE module at a time
+3. **Feed it to any AI** — the AI generates code that follows SCP rules
+4. **Verify with the Weaver** — a second AI pass checks for coupling violations
+
+The AI physically **cannot see** other modules' implementations (RAG Denial). It sees only their interface contracts. This eliminates emergent coupling at the source.
+
+### Step-by-Step Workflow
+
+**Step 1: Define your architecture**
+
+```python
+from scp_bridge import SCPBridge
+
+# Use a built-in template or define your own
+bridge = SCPBridge.from_template("todo_app")
+```
+
+**Step 2: Generate the SCP system prompt for ONE module**
+
+```python
+# This generates a ~700-token prompt that constrains the AI
+system_prompt = bridge.generate_system_prompt("TodoStore", language="python")
+```
+
+The generated prompt includes:
+- ✅ The module's contract (what it must implement)
+- ✅ Glyph constraints (each method governed by ◬, ☾, Ө, 𓂀, or ☤)
+- ✅ Visible dependency interfaces (contracts only, no implementation)
+- 🚫 RAG Denial (other modules are physically inaccessible)
+- 🚫 Forbidden zones (explicitly blocked modules)
+
+**Step 3: Feed to Gemini (or any AI)**
+
+```python
+from google import genai
+
+client = genai.Client(api_key="your-key")
+response = client.models.generate_content(
+    model="gemini-2.0-flash",
+    contents="Implement the TodoStore module now.",
+    config=genai.types.GenerateContentConfig(
+        system_instruction=system_prompt,
+        temperature=0.1,  # Low temp = more deterministic
+    ),
+)
+print(response.text)  # → Python code constrained by SCP
+```
+
+**Step 4: Verify with the Weaver (☤)**
+
+```python
+# Generate a verification prompt
+verify_prompt = bridge.generate_verification_prompt("TodoStore", response.text)
+
+# Ask the AI to check its own work against the SCP spec
+verify = client.models.generate_content(
+    model="gemini-2.0-flash",
+    contents=verify_prompt,
+    config=genai.types.GenerateContentConfig(temperature=0.0),
+)
+print(verify.text)  # → PASS or FAIL with specific violations
+```
+
+### Without an API Key
+
+You can also use the SCP Bridge from the command line and paste the output into any AI chat:
+
+```bash
+# Generate the system prompt
+python scp_bridge.py todo_app TodoStore python
+
+# Copy the output into Gemini, ChatGPT, Claude, etc.
+# Then tell the AI: "Implement the TodoStore module now."
+```
+
+### Available Templates
+
+```bash
+python scp_bridge.py
+# Shows:
+#   todo_app         — Todo Application (modules: TodoStore, API)
+#   data_pipeline    — Data Processing Pipeline (modules: Ingest, Transform, Load)
+```
+
+### What the AI Sees vs. Doesn't See
+
+| Visible to AI | Hidden from AI |
+|---------------|----------------|
+| Module contract & methods | Other modules' source code |
+| Glyph constraints per method | Internal implementation details |
+| Dependency interface signatures | Database schemas, file paths |
+| Global architecture rules | Shared state, global variables |
+
+This is **RAG Denial** — the AI is physically prevented from accessing information that would create coupling. It must design against the contract, not the code.
+
+### Full Example
+
+```bash
+# Run the complete Gemini example
+python examples/gemini_example.py
+```
+
+This runs the full 4-step workflow: template → prompt → generate → verify.
 
 ---
 
