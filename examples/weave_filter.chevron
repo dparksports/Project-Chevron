@@ -1,0 +1,3 @@
+# Weave and Filter Example in Chevron
+# Weave two lists together, then filter to keep only values > 5
+◬ (☤ [[1, 8, 3], [9, 2, 7]]) → Ө {> 5} → 𓂀

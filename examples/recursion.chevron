@@ -1,0 +1,3 @@
+# Recursion Example in Chevron
+# Fold Time: countdown from 10, subtracting 1 each step, until 0
+◬ 10 → ☾ {> 0} {- 1} → 𓂀
