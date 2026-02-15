@@ -1,0 +1,292 @@
+# ◬ SCP System Prompt — Module: VoiceDetector
+# Architecture: TurboScribe — GPU Audio Transcription & Analysis
+# Language: python
+# Protocol: Spatial Constraint Protocol v1.0
+
+import torch
+import logging
+from typing import List, Dict, Optional, Any
+from dataclasses import dataclass, field
+from pathlib import Path
+
+# 🔗 Visible Dependency Interfaces
+# We assume the interface is available in the python path as 'audio_ingest'
+from audio_ingest import AudioIngest
+
+# Setup Logger
+logger = logging.getLogger(__name__)
+
+# --- Data Structures ---
+
+@dataclass
+class Segment:
+    """Represents a detected speech segment with start/end timestamps."""
+    start: float
+    end: float
+    confidence: float = 1.0
+
+@dataclass
+class Block:
+    """A contiguous block of speech segments woven together."""
+    start: float
+    end: float
+    segments: List[Segment]
+
+@dataclass
+class VadResult:
+    """Analysis result for a single audio file."""
+    file_path: str
+    has_speech: bool
+    segments: List[Segment] = field(default_factory=list)
+    blocks: List[Block] = field(default_factory=list)
+
+@dataclass
+class VadReport:
+    """Batch analysis report containing results for all processed files."""
+    processed_files: int
+    files_with_speech: int
+    results: Dict[str, VadResult] = field(default_factory=dict)
+
+# --- Internal Singleton for VAD Model ---
+
+class _VadModelSingleton:
+    """
+    Lazy-loaded Singleton for Silero VAD model.
+    Ensures model is loaded only once and reused.
+    Handles GPU/CPU device selection via AudioIngest config.
+    """
+    _instance = None
+    _model = None
+    _utils = None
+    _device = None
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    def load(self):
+        """Loads the model if not already loaded."""
+        if self._model is not None:
+            return self._model, self._utils, self._device
+
+        # Retrieve device configuration from AudioIngest interface
+        # We pass None to get the default or system-configured device
+        device_config = AudioIngest.get_device_config(None)
+        
+        # Extract device string (assuming DeviceConfig has 'device' attr or is a string)
+        device_str = getattr(device_config, 'device', 'cpu') if not isinstance(device_config, str) else device_config
+        
+        self._device = torch.device(device_str)
+        logger.info(f"Initializing Silero VAD on device: {self._device}")
+
+        try:
+            # Load Silero VAD (using torch.hub)
+            # We trust the environment has internet access or a cached model
+            self._model, self._utils = torch.hub.load(
+                repo_or_dir='snakers4/silero-vad',
+                model='silero_vad',
+                force_reload=False,
+                trust_repo=True,
+                onnx=False
+            )
+            self._model.to(self._device)
+        except Exception as e:
+            logger.error(f"Failed to load VAD model on {self._device}: {e}")
+            # Graceful fallback to CPU
+            if self._device.type != 'cpu':
+                logger.warning("Attempting fallback to CPU...")
+                self._device = torch.device('cpu')
+                self._model, self._utils = torch.hub.load(
+                    repo_or_dir='snakers4/silero-vad',
+                    model='silero_vad',
+                    trust_repo=True
+                )
+                self._model.to(self._device)
+            else:
+                raise e
+
+        return self._model, self._utils, self._device
+
+# --- Module Implementation ---
+
+def run_vad_scan(file_path: str, threshold: float) -> VadResult:
+    """
+    Ө The Filter: Filters audio into speech/silence segments.
+    
+    Contract: Accepts (predicate, data) → Produces filtered data.
+    Constraint: Must never modify data that passes through. Reject, don't transform.
+    
+    Args:
+        file_path: Path to the audio file.
+        threshold: Probability threshold for speech detection.
+        
+    Returns:
+        VadResult containing detected segments and blocks.
+    """
+    # ◬ Origin: Input Validation
+    path_obj = Path(file_path)
+    if not path_obj.exists():
+        raise FileNotFoundError(f"Audio file not found: {file_path}")
+
+    # Load Audio via Interface
+    # AudioIngest.load_audio returns AudioTensor (torch.Tensor)
+    audio_tensor = AudioIngest.load_audio(file_path)
+    
+    # Get Model (Lazy Load)
+    model, utils, device = _VadModelSingleton.get_instance().load()
+    (get_speech_timestamps, _, _, _, _) = utils
+
+    # Ensure tensor is on the correct device
+    if isinstance(audio_tensor, torch.Tensor):
+        audio_tensor = audio_tensor.to(device)
+    
+    # Run Detection
+    # Silero expects 16kHz. We assume AudioIngest provides compatible audio.
+    sampling_rate = 16000 
+    
+    speech_timestamps = get_speech_timestamps(
+        audio_tensor,
+        model,
+        threshold=threshold,
+        sampling_rate=sampling_rate
+    )
+    
+    # Transform timestamps to Segments (Filter logic)
+    segments: List[Segment] = []
+    for ts in speech_timestamps:
+        # Convert samples to seconds
+        start_sec = ts['start'] / sampling_rate
+        end_sec = ts['end'] / sampling_rate
+        segments.append(Segment(start=start_sec, end=end_sec))
+    
+    has_speech = len(segments) > 0
+    
+    # ☤ Weaver: Weave segments into blocks
+    # Using a default gap threshold of 2.0s for single file scan
+    blocks = cluster_segments(segments, gap_threshold=2.0)
+    
+    return VadResult(
+        file_path=file_path,
+        has_speech=has_speech,
+        segments=segments,
+        blocks=blocks
+    )
+
+def run_batch_vad_scan(directory: str, threshold: float, skip_existing: bool = False) -> VadReport:
+    """
+    Ө The Filter: Filters entire directory — only files with speech pass.
+    
+    Contract: Accepts (predicate, data) → Produces filtered data.
+    Constraint: Must never modify data that passes through.
+    
+    Args:
+        directory: Target directory to scan.
+        threshold: VAD sensitivity.
+        skip_existing: If True, skips files that already have a transcript.
+        
+    Returns:
+        VadReport summarizing the batch operation.
+    """
+    # ◬ Origin: Discovery via AudioIngest
+    media_files = AudioIngest.find_media(directory)
+    
+    report = VadReport(
+        processed_files=0,
+        files_with_speech=0,
+        results={}
+    )
+    
+    for media in media_files:
+        # Extract path from MediaFile object (assuming 'path' attribute or string representation)
+        fpath = getattr(media, 'path', str(media))
+        path_obj = Path(fpath)
+        
+        # Check skip_existing constraint
+        # Universal Contract: filename_transcript_modelname.txt
+        if skip_existing:
+            # Check for any file matching the transcript pattern for this source file
+            # Pattern: {stem}_transcript_*.txt
+            existing_transcripts = list(path_obj.parent.glob(f"{path_obj.stem}_transcript_*.txt"))
+            if existing_transcripts:
+                logger.info(f"Skipping {path_obj.name} (Transcript exists)")
+                continue
+
+        try:
+            # Apply the Filter (run_vad_scan)
+            result = run_vad_scan(str(fpath), threshold)
+            
+            report.processed_files += 1
+            
+            # Only pass through if speech is detected (The Filter)
+            if result.has_speech:
+                report.files_with_speech += 1
+                report.results[str(fpath)] = result
+            else:
+                logger.debug(f"No speech detected in {path_obj.name}")
+                
+        except Exception as e:
+            logger.error(f"Error processing {fpath}: {e}")
+            # Continue batch processing despite individual errors
+            continue
+            
+    return report
+
+def cluster_segments(segments: List[Segment], gap_threshold: float) -> List[Block]:
+    """
+    ☤ The Weaver: Weaves adjacent segments into contiguous speech blocks.
+    
+    Contract: Accepts list of values → Produces single merged value (list of Blocks).
+    Constraint: Must preserve all input data. Nothing may be lost in the weaving.
+    
+    Args:
+        segments: List of raw speech segments.
+        gap_threshold: Max silence duration (seconds) to merge segments.
+        
+    Returns:
+        List of Block objects containing merged segments.
+    """
+    if not segments:
+        return []
+
+    # Sort by start time to ensure correct weaving
+    sorted_segments = sorted(segments, key=lambda s: s.start)
+    
+    blocks: List[Block] = []
+    
+    # Initialize the first strand of the weave
+    current_segments = [sorted_segments[0]]
+    block_start = sorted_segments[0].start
+    block_end = sorted_segments[0].end
+    
+    for i in range(1, len(sorted_segments)):
+        seg = sorted_segments[i]
+        
+        # Calculate the gap between the current weave and the next segment
+        gap = seg.start - block_end
+        
+        if gap <= gap_threshold:
+            # ☤ Weave: Merge into current block
+            current_segments.append(seg)
+            block_end = max(block_end, seg.end)
+        else:
+            # Tie off the current block
+            blocks.append(Block(
+                start=block_start,
+                end=block_end,
+                segments=current_segments # Preserves input data
+            ))
+            # Start a new strand
+            current_segments = [seg]
+            block_start = seg.start
+            block_end = seg.end
+            
+    # Tie off the final block
+    blocks.append(Block(
+        start=block_start,
+        end=block_end,
+        segments=current_segments
+    ))
+    
+    return blocks

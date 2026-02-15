@@ -1,0 +1,116 @@
+# ◬ TurboScribe Architecture in Chevron
+# GPU-Accelerated Audio Transcription & Analysis
+# 9 SCP modules · 24 methods · 5 glyph primitives
+#
+# Source: fast_engine.py (~1,520 LOC) + timestamp_engine.py (~416 LOC)
+# Full codebase: ~109,633 tokens → SCP per-module: ~660 tokens (166× compression)
+
+# ─────────────────────────────────────────────
+# Type Declarations
+# ─────────────────────────────────────────────
+
+type MediaFile = { path: str, size: int, ext: str }
+type AudioTensor = { data: str, sample_rate: int, device: str }
+type VadResult = { has_speech: str, segments: str }
+type Transcript = { text: str, segments: str, model: str }
+type SearchResult = { line: str, score: str, file: str }
+type DetectionReport = { has_meeting: str, confidence: str }
+type TimestampResult = { start_time: str, end_time: str, date: str }
+type DeviceConfig = { device: str, compute_type: str }
+
+# ─────────────────────────────────────────────
+# Module Specifications
+# ─────────────────────────────────────────────
+
+spec AudioIngest
+    exports find_media, load_audio, get_device_config
+    forbidden [Transcriber, SearchEngine, MeetingDetector, Analyzer]
+    constraint "No ML imports — raw I/O only"
+    constraint "Must validate file existence before loading"
+    # ◬ "directory" → find_media → [MediaFile] → 𓂀
+end
+
+spec VoiceDetector
+    depends_on [AudioIngest]
+    imports AudioIngest
+    exports run_vad_scan, batch_vad_scan, cluster_segments
+    forbidden [Transcriber, SearchEngine, Analyzer]
+    constraint "No transcription — detection only"
+    constraint "Silero VAD model only — no Whisper"
+end
+
+spec Transcriber
+    depends_on [AudioIngest, VoiceDetector]
+    imports AudioIngest, VoiceDetector
+    exports load_model, transcribe_file, batch_transcribe, transcribe_segment
+    forbidden [SearchEngine, MeetingDetector, Analyzer]
+    constraint "No analysis or search — transcription only"
+    constraint "Must save as filename_transcript_modelname.txt"
+end
+
+spec SearchEngine
+    depends_on [Transcriber]
+    imports Transcriber
+    exports keyword_search, semantic_search
+    forbidden [AudioIngest, VoiceDetector, MeetingDetector, Analyzer]
+    constraint "Read-only — no transcript mutation"
+end
+
+spec MeetingDetector
+    depends_on [Transcriber, LLMProvider]
+    imports Transcriber, LLMProvider
+    exports detect_meetings, classify_transcript
+    forbidden [AudioIngest, VoiceDetector, SearchEngine]
+    constraint "No file modification"
+    constraint "Must distinguish real meetings from hallucinated ones"
+end
+
+spec LLMProvider
+    exports load_local_model, generate, list_models
+    forbidden [AudioIngest, VoiceDetector, Transcriber, SearchEngine]
+    constraint "No domain logic — pure LLM abstraction"
+    constraint "Must support both local and cloud providers"
+end
+
+spec Analyzer
+    depends_on [Transcriber, LLMProvider]
+    imports Transcriber, LLMProvider
+    exports summarize, outline
+    forbidden [AudioIngest, VoiceDetector, SearchEngine, MeetingDetector]
+    constraint "Delegates all LLM calls to LLMProvider"
+end
+
+spec TimestampExtractor
+    depends_on [AudioIngest]
+    imports AudioIngest
+    exports extract_timestamps, batch_rename
+    forbidden [Transcriber, SearchEngine, MeetingDetector, Analyzer]
+    constraint "Independent of transcription pipeline"
+    constraint "Video frames only — no audio processing"
+end
+
+spec ProgressWitness
+    exports emit_progress, emit_result, emit_error
+    constraint "Zero side effects — pure observation"
+    constraint "Must not throw exceptions"
+end
+
+# ─────────────────────────────────────────────
+# Executable: Audio pipeline demo
+# ─────────────────────────────────────────────
+
+# Single Origin: files discovered → weaved → filtered → witnessed
+◬ (☤ [["file1.wav", "file2.mp3"], ["file3.m4a"]]) → Ө {!= "file3.m4a"} → 𓂀
+
+# ─────────────────────────────────────────────
+# Full DAG (comment-only — spec blocks above define the contracts)
+# ─────────────────────────────────────────────
+#
+# ◬ AudioIngest
+# ├── → Ө VoiceDetector → ☾ Transcriber
+# │       ├── → Ө SearchEngine → 𓂀
+# │       ├── → Ө MeetingDetector (via ☤ LLMProvider) → 𓂀
+# │       └── → ☤ Analyzer (via ☤ LLMProvider) → 𓂀
+# └── → ☾ TimestampExtractor → 𓂀
+#
+# 𓂀 ProgressWitness (observes all, modifies nothing)

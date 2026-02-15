@@ -1,0 +1,8 @@
+# ◬ TodoStore in Chevron
+# Demonstrates all 5 glyphs in a single pipeline
+
+# Origin creates store → Weaver adds tasks → Filter removes one → Witness observes
+◬ (☤ [
+    ["task1: Buy milk", "task2: Write paper", "task3: Deploy app"],
+    ["task5: New feature"]
+]) → Ө {!= "task2: Write paper"} → 𓂀

@@ -283,7 +283,98 @@ Check for:
 - FAIL: List each violation with line number and explanation.
 """
 
+    def generate_test_prompt(self, module_name: str, code: str, language: str = "python") -> str:
+        """
+        Generate a prompt for AI to create pytest tests for a module.
+        Tests are derived from the SCP CONTRACT (not from reading the implementation),
+        ensuring they verify spec compliance rather than implementation details.
+        """
+        module = self._find_module(module_name)
+        if module is None:
+            raise ValueError(f"Module '{module_name}' not found")
+
+        # Build method test expectations
+        method_tests = []
+        for m in module.methods:
+            inputs = ", ".join(m.inputs) if m.inputs else ""
+            method_tests.append(
+                f"- `{m.name}({inputs}) -> {m.output}` — {m.constraint or 'standard behavior'}"
+            )
+        methods_section = "\n".join(method_tests)
+
+        # Build constraint test expectations
+        constraint_tests = []
+        for c in module.constraints:
+            constraint_tests.append(f"- {c}")
+        constraints_section = "\n".join(constraint_tests) if constraint_tests else "- (no specific constraints)"
+
+        # Build dependency info
+        allowed_deps = module.allowed_dependencies or ["(none — fully isolated)"]
+
+        return f"""# 🧪 SCP Test Generation: {module.name}
+
+You are generating pytest tests for the **{module.name}** module.
+
+## IMPORTANT RULES
+1. Tests must verify the **SCP contract** — method signatures, return types, constraints
+2. Mock ALL external dependencies (no real GPU, no API calls, no file I/O)
+3. Use `unittest.mock.patch` and `unittest.mock.MagicMock` for dependencies
+4. Tests must be runnable with just: `pytest test_{module_name.lower()}.py -v`
+5. No external packages beyond pytest and unittest.mock
+6. Import the module as: `import {module_name.lower()}`
+
+## Module Under Test
+**{module.name}**: {module.description}
+
+## Methods to Test (verify these exist and have correct signatures)
+{methods_section}
+
+## Constraints to Verify
+{constraints_section}
+
+## Dependency Isolation Rules
+Allowed project dependencies: {allowed_deps}
+The tests must verify that the module does NOT import any forbidden project modules.
+
+## Glyph Contract
+{self._format_glyph_checks(module)}
+
+## Code Under Test
+```{language}
+{code}
+```
+
+## Required Test Categories
+
+### 1. Structural Tests (`test_interface_*`)
+- Verify each method exists as a callable
+- Verify method signatures match the spec (parameter names and count)
+- Verify the module has the expected public API (no missing/extra public methods)
+
+### 2. Constraint Tests (`test_constraint_*`)
+- For each constraint listed above, write a test that verifies it
+- Use AST inspection (import ast) to check import restrictions
+- Check for forbidden patterns in the source code
+
+### 3. Behavioral Tests (`test_behavior_*`)
+- Call each method with mocked dependencies
+- Verify return types match the spec
+- Test edge cases: empty inputs, None values, error handling
+- For Fold Time (☾) methods: verify base case handling
+
+### 4. Isolation Tests (`test_isolation_*`)
+- Parse the source with `ast` to extract all imports
+- Verify no forbidden project modules are imported
+- Verify no global mutable state
+
+## Output Format
+Output ONLY the Python test file content. No markdown fences, no explanation.
+Start with the imports, then the test classes/functions.
+Use descriptive test names that reference the SCP contract.
+"""
+
     def generate_full_workspace(self, language: str = "python") -> str:
+
         """Generate prompts for ALL modules — the complete SCP workspace."""
         output = [f"# SCP Architecture: {self.spec.name}\n"]
         output.append(f"## Global Constraints")

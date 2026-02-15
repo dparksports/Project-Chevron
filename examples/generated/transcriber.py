@@ -1,0 +1,297 @@
+# ◬ SCP System Prompt — Module: Transcriber
+# Architecture: TurboScribe — GPU Audio Transcription & Analysis
+# Language: python
+# Protocol: Spatial Constraint Protocol v1.0
+
+import os
+import logging
+import sys
+from typing import List, Optional, Dict, Any, Union, NamedTuple
+from dataclasses import dataclass, field
+from pathlib import Path
+import time
+
+# External Dependency: faster_whisper
+# We assume this is installed in the environment as per the module contract.
+try:
+    from faster_whisper import WhisperModel
+except ImportError:
+    # Fallback for static analysis or environments where the lib is missing
+    class WhisperModel:
+        def __init__(self, *args, **kwargs): pass
+        def transcribe(self, *args, **kwargs): return [], {}
+
+# Visible Dependency Interfaces
+import AudioIngest
+import VoiceDetector
+
+# Setup Logging
+logger = logging.getLogger(__name__)
+
+# Module-level state for the singleton model instance
+_GLOBAL_MODEL: Optional[WhisperModel] = None
+_CURRENT_MODEL_NAME: Optional[str] = None
+
+@dataclass
+class TranscriptSegment:
+    """Represents a single segment of transcribed text with timing."""
+    start: float
+    end: float
+    text: str
+    confidence: float
+
+@dataclass
+class Transcript:
+    """Represents the full transcription of an audio source."""
+    file_path: str
+    model_name: str
+    text: str
+    segments: List[TranscriptSegment]
+    language: str = "en"
+    duration: float = 0.0
+
+# ◬ The Origin
+def load_model(model_name: str, device: str, compute: str) -> WhisperModel:
+    """
+    ◬ Origin — loads the Whisper model with CPU fallback.
+    Initializes the faster-whisper model. Implements graceful fallback from GPU to CPU.
+    Acts as the singleton factory for the module.
+    """
+    global _GLOBAL_MODEL, _CURRENT_MODEL_NAME
+    
+    # Return existing model if already loaded with same config
+    if _GLOBAL_MODEL is not None and _CURRENT_MODEL_NAME == model_name:
+        return _GLOBAL_MODEL
+
+    print(f"[PROGRESS] Loading model {model_name} on {device} ({compute})...")
+    
+    try:
+        # Primary attempt: Load with requested configuration (usually GPU)
+        model = WhisperModel(model_name, device=device, compute_type=compute)
+        _GLOBAL_MODEL = model
+        _CURRENT_MODEL_NAME = model_name
+        print(f"[PROGRESS] Model {model_name} loaded successfully on {device}.")
+        return model
+        
+    except Exception as e:
+        logger.warning(f"Failed to load model on {device}: {e}")
+        if device != "cpu":
+            print(f"[PROGRESS] Falling back to CPU for model {model_name}...")
+            try:
+                # Fallback attempt: CPU with int8 (usually safer for CPU)
+                model = WhisperModel(model_name, device="cpu", compute_type="int8")
+                _GLOBAL_MODEL = model
+                _CURRENT_MODEL_NAME = model_name
+                print(f"[PROGRESS] Model {model_name} loaded successfully on CPU.")
+                return model
+            except Exception as cpu_e:
+                logger.error(f"Critical failure: Could not load model on CPU: {cpu_e}")
+                raise cpu_e
+        else:
+            raise e
+
+# ☾ Fold Time
+def transcribe_file(file_path: str, model_name: str, beam_size: int) -> Transcript:
+    """
+    ☾ Fold Time — Folds audio through model — iterates segments into full transcript.
+    Transcribes a single file. Checks for existing output to skip work.
+    """
+    path_obj = Path(file_path)
+    if not path_obj.exists():
+        raise FileNotFoundError(f"Audio file not found: {file_path}")
+
+    # Construct output filename: filename_transcript_modelname.txt
+    output_filename = f"{path_obj.stem}_transcript_{model_name}.txt"
+    output_path = path_obj.parent / output_filename
+
+    # Check skip_existing constraint
+    if output_path.exists():
+        print(f"[PROGRESS] Skipping {file_path} (Transcript exists).")
+        # In a real scenario, we might reload the transcript here. 
+        # For this contract, we return a placeholder or read the file.
+        # We'll read the file to return a valid Transcript object.
+        try:
+            with open(output_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            return Transcript(
+                file_path=file_path,
+                model_name=model_name,
+                text=content,
+                segments=[], # We don't parse segments from text file in this simple read
+                language="unknown"
+            )
+        except Exception:
+            logger.warning("Failed to read existing transcript, re-transcribing.")
+
+    # Ensure model is loaded
+    global _GLOBAL_MODEL
+    if _GLOBAL_MODEL is None or _CURRENT_MODEL_NAME != model_name:
+        # Fetch config from AudioIngest interface
+        # We assume AudioIngest.get_device_config returns an object with 'device' and 'compute_type'
+        # or we default safely.
+        try:
+            config = AudioIngest.get_device_config(None)
+            # Handle opaque config object by checking attributes or defaulting
+            device = getattr(config, 'device', 'cuda')
+            compute = getattr(config, 'compute_type', 'float16')
+        except Exception:
+            device = "cuda"
+            compute = "float16"
+            
+        load_model(model_name, device, compute)
+
+    model = _GLOBAL_MODEL
+    if not model:
+        raise RuntimeError("Model failed to initialize.")
+
+    print(f"[PROGRESS] Transcribing {path_obj.name}...")
+    
+    # Run transcription (The Fold)
+    # segments is a generator
+    segments_generator, info = model.transcribe(
+        file_path, 
+        beam_size=beam_size,
+        vad_filter=True # Using built-in VAD filter of faster-whisper as a baseline
+    )
+
+    transcript_segments = []
+    full_text_parts = []
+
+    # Iterate generator (Folding time segments into list)
+    for segment in segments_generator:
+        text = segment.text.strip()
+        full_text_parts.append(text)
+        transcript_segments.append(TranscriptSegment(
+            start=segment.start,
+            end=segment.end,
+            text=text,
+            confidence=segment.avg_logprob # Approximation for confidence
+        ))
+        # Optional: Emit progress for long files
+        # print(f"[PROGRESS] Processed segment {segment.start:.1f}s - {segment.end:.1f}s")
+
+    full_text = " ".join(full_text_parts)
+
+    # Save to file (Constraint)
+    try:
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(full_text)
+        print(f"[PROGRESS] Saved transcript to {output_filename}")
+    except IOError as e:
+        logger.error(f"Failed to save transcript file: {e}")
+
+    return Transcript(
+        file_path=file_path,
+        model_name=model_name,
+        text=full_text,
+        segments=transcript_segments,
+        language=info.language,
+        duration=info.duration
+    )
+
+# ☾ Fold Time
+def batch_transcribe(directory: str, model_name: str, beam_size: int) -> List[Transcript]:
+    """
+    ☾ Fold Time — Recursively folds all files in directory through transcription.
+    Discovers media via AudioIngest and processes them sequentially.
+    """
+    print(f"[PROGRESS] Starting batch transcription for {directory}")
+    
+    # Discovery
+    media_files = AudioIngest.find_media(directory)
+    results = []
+
+    # Recursion/Iteration (The Fold)
+    for media in media_files:
+        # media is likely a MediaFile object, assuming it has a 'path' attribute or is a string
+        # Based on AudioIngest contract, let's assume it has a path property or is the path.
+        # We'll handle it safely.
+        file_path = getattr(media, 'path', str(media))
+        
+        try:
+            transcript = transcribe_file(file_path, model_name, beam_size)
+            results.append(transcript)
+        except Exception as e:
+            logger.error(f"Failed to transcribe {file_path}: {e}")
+            print(f"[PROGRESS] Error processing {file_path}. Skipping.")
+            continue
+
+    print(f"[PROGRESS] Batch transcription complete. Processed {len(results)} files.")
+    return results
+
+# ☾ Fold Time
+def transcribe_segment(file_path: str, start: float, end: float) -> Transcript:
+    """
+    ☾ Fold Time — Folds a specific time range through the model.
+    Used for analyzing specific clips. Requires loading audio and slicing.
+    """
+    # Ensure model is loaded (using default/current if available)
+    global _GLOBAL_MODEL
+    if _GLOBAL_MODEL is None:
+        # If no model is loaded, we must load a default one. 
+        # This is a fallback as this method signature doesn't allow specifying model.
+        # We assume 'medium' as a reasonable default for segments.
+        load_model("medium", "cuda", "float16")
+    
+    model = _GLOBAL_MODEL
+    
+    # Load audio tensor via AudioIngest
+    # We assume AudioIngest.load_audio returns a numpy-compatible array or tensor
+    # faster-whisper expects a numpy array (16kHz mono)
+    audio_data = AudioIngest.load_audio(file_path)
+    
+    # We need to slice the audio. 
+    # Assumption: AudioIngest returns raw audio at 16kHz (Whisper standard).
+    # If it's a tensor, we convert to numpy.
+    try:
+        import numpy as np
+        if hasattr(audio_data, 'numpy'):
+            audio_np = audio_data.numpy()
+        else:
+            audio_np = np.array(audio_data)
+            
+        # Calculate indices (Sample Rate 16000)
+        sr = 16000
+        start_idx = int(start * sr)
+        end_idx = int(end * sr)
+        
+        # Clamp indices
+        if start_idx < 0: start_idx = 0
+        if end_idx > len(audio_np): end_idx = len(audio_np)
+        
+        if start_idx >= end_idx:
+            return Transcript(file_path, "current", "", [], "unknown")
+
+        audio_segment = audio_np[start_idx:end_idx]
+        
+        # Transcribe the segment array
+        segments_generator, info = model.transcribe(
+            audio_segment, 
+            beam_size=5 # Default beam size
+        )
+        
+        text_parts = []
+        segs = []
+        for s in segments_generator:
+            text_parts.append(s.text.strip())
+            segs.append(TranscriptSegment(
+                start=start + s.start, # Offset relative to original file
+                end=start + s.end,
+                text=s.text.strip(),
+                confidence=s.avg_logprob
+            ))
+            
+        full_text = " ".join(text_parts)
+        
+        return Transcript(
+            file_path=file_path,
+            model_name=_CURRENT_MODEL_NAME or "unknown",
+            text=full_text,
+            segments=segs,
+            language=info.language,
+            duration=end - start
+        )
+
+    except Exception as e:
+        logger.error(f"Error transcribing segment {file_path} [{start}:{end}]: {e}")
+        return Transcript(file_path, "error", "", [], "error")

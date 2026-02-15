@@ -1,0 +1,190 @@
+◬ SCP Generated: AudioIngest
+Model: gemini-3-pro-preview
+============================================================
+
+```python
+import os
+import subprocess
+from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Optional, Union, Set
+
+# Environment dependencies (allowed as they are not project modules)
+# We assume torch and numpy are present in the runtime environment for GPU operations.
+try:
+    import torch
+    import numpy as np
+    AudioTensor = torch.Tensor
+except ImportError:
+    # Fallback for type hinting if environment is not set up during static analysis
+    from typing import Any
+    AudioTensor = Any
+    torch = None
+    np = None
+
+# -----------------------------------------------------------------------------
+# Constants
+# -----------------------------------------------------------------------------
+
+MEDIA_EXTENSIONS: Set[str] = {
+    '.mp3', '.wav', '.m4a', '.flac', '.ogg', '.aac', '.wma', 
+    '.mp4', '.mkv', '.webm', '.mov', '.avi'
+}
+
+# -----------------------------------------------------------------------------
+# Data Structures
+# -----------------------------------------------------------------------------
+
+@dataclass
+class MediaFile:
+    """Represents a discovered media file."""
+    path: str
+    filename: str
+    extension: str
+    size_bytes: int
+
+@dataclass
+class DeviceConfig:
+    """Configuration for compute device (CPU/GPU)."""
+    device: str
+    index: Optional[int] = None
+    name: Optional[str] = None
+
+# -----------------------------------------------------------------------------
+# Module Implementation
+# -----------------------------------------------------------------------------
+
+class AudioIngest:
+    """
+    Module: AudioIngest
+    Purpose: Discovers and loads media files from directories. Entry point for all pipelines.
+    Protocol: Spatial Constraint Protocol v1.0
+    """
+
+    def find_media(self, directory: str) -> List[MediaFile]:
+        """
+        ◬ The Origin — Discovers all media files recursively.
+        
+        Contract: Accepts initial data (directory) -> Produces a data stream (List[MediaFile]).
+        Constraint: Must appear exactly once per program. Must not be nested.
+        Constraint: File discovery must be deterministic (sorted).
+        """
+        media_files: List[MediaFile] = []
+        search_path = Path(directory)
+
+        if not search_path.exists():
+            return []
+
+        # Walk the directory tree
+        # os.walk yields a 3-tuple (dirpath, dirnames, filenames)
+        # We sort the walk to ensure deterministic order across runs
+        for root, _, files in sorted(os.walk(search_path)):
+            # Sort files to ensure determinism within directories
+            for filename in sorted(files):
+                file_path = Path(root) / filename
+                if file_path.suffix.lower() in MEDIA_EXTENSIONS:
+                    media_files.append(MediaFile(
+                        path=str(file_path.absolute()),
+                        filename=filename,
+                        extension=file_path.suffix.lower(),
+                        size_bytes=file_path.stat().st_size
+                    ))
+        
+        return media_files
+
+    def load_audio(self, file_path: str) -> AudioTensor:
+        """
+        ◬ The Origin — Loads audio as 16kHz mono float32 tensor via ffmpeg.
+        
+        Contract: Accepts initial data (file_path) -> Produces a data stream (AudioTensor).
+        Constraint: Must appear exactly once per program. Must not be nested.
+        Constraint: Must not transform or analyze audio beyond decoding.
+        """
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        # FFmpeg command construction
+        # -nostdin: Prevent ffmpeg from reading from stdin
+        # -threads 0: Use optimal thread count
+        # -i: Input file
+        # -vn: Disable video recording
+        # -ar 16000: Set audio sampling rate to 16kHz (Whisper standard)
+        # -ac 1: Set audio channels to 1 (Mono)
+        # -f f32le: Output format float32 little-endian
+        # -: Output to stdout
+        cmd = [
+            'ffmpeg',
+            '-nostdin',
+            '-threads', '0',
+            '-i', file_path,
+            '-vn',
+            '-ar', '16000',
+            '-ac', '1',
+            '-f', 'f32le',
+            '-'
+        ]
+
+        try:
+            # Execute ffmpeg process
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL
+            )
+            
+            # Read raw bytes from stdout
+            out, _ = process.communicate()
+
+            if process.returncode != 0:
+                raise RuntimeError(f"FFmpeg failed to process file: {file_path}")
+
+            if not out:
+                # Return empty tensor if output is empty
+                return torch.zeros(0) if torch else []
+
+            # Convert raw bytes to numpy array then to torch tensor
+            if np and torch:
+                # Create numpy array from buffer (float32)
+                audio_np = np.frombuffer(out, dtype=np.float32)
+                # Copy to ensure memory safety when converting to tensor
+                audio_tensor = torch.from_numpy(audio_np.copy())
+                return audio_tensor
+            else:
+                raise ImportError("Runtime environment missing 'torch' or 'numpy' required for AudioTensor.")
+
+        except FileNotFoundError:
+            raise RuntimeError("FFmpeg binary not found. Please ensure ffmpeg is installed and in PATH.")
+
+    def get_device_config(self, override: Optional[str]) -> DeviceConfig:
+        """
+        𓃀 Witnesses GPU/CPU availability without side effects.
+        
+        Contract: Witnesses hardware state.
+        """
+        # 1. Honor override if provided
+        if override:
+            return DeviceConfig(device=override, name="User Override")
+
+        # 2. Check for CUDA (NVIDIA GPU)
+        if torch and torch.cuda.is_available():
+            try:
+                device_idx = torch.cuda.current_device()
+                device_name = torch.cuda.get_device_name(device_idx)
+                return DeviceConfig(device="cuda", index=device_idx, name=device_name)
+            except Exception:
+                # Fallback if cuda is available but query fails
+                return DeviceConfig(device="cuda", name="CUDA GPU")
+
+        # 3. Check for MPS (Apple Silicon)
+        if torch and hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            return DeviceConfig(device="mps", name="Apple Silicon MPS")
+
+        # 4. Fallback to CPU
+        return DeviceConfig(device="cpu", name="CPU")
+```
+
+============================================================
+☤ Weaver Verification
+============================================================
+
+PASS: All checks satisfied. W(G) = 0.

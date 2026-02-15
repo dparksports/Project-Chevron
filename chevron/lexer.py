@@ -26,6 +26,7 @@ class TokenType(Enum):
     LBRACE      = auto()   # {
     RBRACE      = auto()   # }
     COMMA       = auto()   # ,
+    COLON       = auto()   # : (type annotations)
     UNDERSCORE  = auto()   # _ (placeholder for piped value)
 
     # Literals
@@ -47,6 +48,17 @@ class TokenType(Enum):
     MINUS       = auto()   # -
     STAR        = auto()   # *
     SLASH       = auto()   # /
+
+    # Keywords (module/spec/type system)
+    KW_MODULE     = auto()   # module
+    KW_SPEC       = auto()   # spec
+    KW_IMPORTS    = auto()   # imports
+    KW_EXPORTS    = auto()   # exports
+    KW_DEPENDS_ON = auto()   # depends_on
+    KW_FORBIDDEN  = auto()   # forbidden
+    KW_CONSTRAINT = auto()   # constraint
+    KW_TYPE       = auto()   # type
+    KW_END        = auto()   # end
 
     # Special
     NEWLINE     = auto()
@@ -77,7 +89,7 @@ SINGLE_CHAR_TOKENS = {
     "{": TokenType.LBRACE,
     "}": TokenType.RBRACE,
     ",": TokenType.COMMA,
-    "_": TokenType.UNDERSCORE,
+    ":": TokenType.COLON,
     "+": TokenType.PLUS,
     "-": TokenType.MINUS,
     "*": TokenType.STAR,
@@ -90,6 +102,15 @@ SINGLE_CHAR_TOKENS = {
 KEYWORDS = {
     "true": TokenType.BOOLEAN,
     "false": TokenType.BOOLEAN,
+    "module": TokenType.KW_MODULE,
+    "spec": TokenType.KW_SPEC,
+    "imports": TokenType.KW_IMPORTS,
+    "exports": TokenType.KW_EXPORTS,
+    "depends_on": TokenType.KW_DEPENDS_ON,
+    "forbidden": TokenType.KW_FORBIDDEN,
+    "constraint": TokenType.KW_CONSTRAINT,
+    "type": TokenType.KW_TYPE,
+    "end": TokenType.KW_END,
 }
 
 
@@ -171,7 +192,7 @@ class Lexer:
         return Token(TokenType.NUMBER, "".join(chars), start_line, start_col)
 
     def _read_identifier(self) -> Token:
-        """Read an identifier or keyword."""
+        """Read an identifier or keyword. Supports snake_case (e.g. find_media)."""
         start_line, start_col = self.line, self.col
         chars = []
         while self.pos < len(self.source):
@@ -266,14 +287,25 @@ class Lexer:
                 self._advance()
                 continue
 
-            # Single-char operators
+            # Single-char operators (NOT underscore — handled below)
             if ch in SINGLE_CHAR_TOKENS:
                 yield Token(SINGLE_CHAR_TOKENS[ch], ch, self.line, self.col)
                 self._advance()
                 continue
 
+            # Underscore: standalone `_` is placeholder, `_`+alnum is identifier
+            if ch == "_":
+                nxt = self._peek()
+                if nxt is not None and (nxt.isalnum() or nxt == "_"):
+                    # Part of an identifier like _private or trailing _
+                    yield self._read_identifier()
+                else:
+                    yield Token(TokenType.UNDERSCORE, "_", self.line, self.col)
+                    self._advance()
+                continue
+
             # Identifiers and keywords
-            if ch is not None and (ch.isalpha() or ch == "_"):
+            if ch is not None and ch.isalpha():
                 yield self._read_identifier()
                 continue
 

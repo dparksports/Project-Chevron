@@ -1,0 +1,266 @@
+
+import re as _re
+
+SUPPORTED_MODELS = [
+    "gemini-3-pro-preview",
+    "gemini-3-flash-preview",
+    "gemini-2.5-pro",
+    "gemini-2.5-flash",
+]
+DEFAULT_MODEL = "gemini-3-pro-preview"
+
+
+def _generate_module(bridge, module_name, model, client, output_dir=None):
+    """Generate a single module, verify with Weaver, optionally save."""
+    from google import genai
+    prompt = bridge.generate_system_prompt(module_name, language="{{LANGUAGE}}")
+    print(f"\n◬ ─── Sending to {model}: Implement {module_name} ───")
+    print(f"   Prompt size: {len(prompt)} chars (~{len(prompt.split())} tokens)")
+    try:
+        response = client.models.generate_content(
+            model=model,
+            contents=f"Implement the {module_name} module now.",
+            config=genai.types.GenerateContentConfig(
+                system_instruction=prompt, temperature=0.1),
+        )
+        code = response.text
+        print(f"☤ ─── Weaver Verification: {module_name} ───")
+        verify_prompt = bridge.generate_verification_prompt(module_name, code)
+        verify = client.models.generate_content(
+            model=model,
+            contents=verify_prompt,
+            config=genai.types.GenerateContentConfig(temperature=0.0),
+        )
+        verification = verify.text
+        v_line = verification.upper().split("\n")[0] if verification else ""
+        passed = "PASS" in v_line
+        print(f"   {'✔ PASS' if passed else '✘ FAIL'}")
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+            code_file = os.path.join(output_dir, f"{module_name.lower()}.py")
+            clean_code = code
+            if "```python" in code:
+                match = _re.search(r'```python\s*\n(.*?)```', code, _re.DOTALL)
+                if match:
+                    clean_code = match.group(1)
+            with open(code_file, "w", encoding="utf-8") as f:
+                f.write(clean_code)
+            out_file = os.path.join(output_dir, f"{module_name.lower()}_output.txt")
+            with open(out_file, "w", encoding="utf-8") as f:
+                f.write(f"◬ SCP Generated: {module_name}\nModel: {model}\n")
+                f.write("=" * 60 + "\n\n" + code)
+                f.write("\n\n" + "=" * 60 + "\n☤ Weaver Verification\n" + "=" * 60 + "\n\n")
+                f.write(verification)
+            print(f"   Saved: {code_file}")
+        return code, verification
+    except Exception as e:
+        print(f"   ⚠ Error generating {module_name}: {e}")
+        return None
+
+
+def _generate_tests(bridge, module_name, code, model, client, output_dir):
+    """Generate pytest tests from SCP contract and run them."""
+    import subprocess
+    print(f"🧪 ─── Test Generation: {module_name} ───")
+    test_prompt = bridge.generate_test_prompt(module_name, code, language="{{LANGUAGE}}")
+    print(f"   Prompt size: {len(test_prompt)} chars (~{len(test_prompt.split())} tokens)")
+    try:
+        from google import genai
+        response = client.models.generate_content(
+            model=model,
+            contents=f"Generate pytest tests for the {module_name} module now.",
+            config=genai.types.GenerateContentConfig(
+                system_instruction=test_prompt, temperature=0.1),
+        )
+        test_code = response.text
+        clean_test = test_code
+        if "```python" in test_code:
+            match = _re.search(r'```python\s*\n(.*?)```', test_code, _re.DOTALL)
+            if match:
+                clean_test = match.group(1)
+        elif "```" in test_code:
+            match = _re.search(r'```\s*\n(.*?)```', test_code, _re.DOTALL)
+            if match:
+                clean_test = match.group(1)
+        os.makedirs(output_dir, exist_ok=True)
+        test_file = os.path.join(output_dir, f"test_{module_name.lower()}.py")
+        with open(test_file, "w", encoding="utf-8") as f:
+            f.write(clean_test)
+        print(f"   Saved: {test_file}")
+        print(f"   Running: pytest {test_file} -v --tb=short")
+        result = subprocess.run(
+            [sys.executable, "-m", "pytest", test_file, "-v", "--tb=short", "--no-header"],
+            capture_output=True, text=True, cwd=output_dir, timeout=60,
+        )
+        output = result.stdout + result.stderr
+        for line in output.strip().split("\n")[-20:]:
+            print(f"   {line}")
+        status = "PASS" if result.returncode == 0 else "FAIL"
+        print(f"   pytest: {'✔ PASS' if status == 'PASS' else '✘ FAIL'}")
+        return status
+    except subprocess.TimeoutExpired:
+        print(f"   ⚠ pytest timed out (60s)")
+        return "TIMEOUT"
+    except Exception as e:
+        print(f"   ⚠ Error generating tests: {e}")
+        return "ERROR"
+
+
+def _generate_main_driver(output_dir, module_names, spec):
+    """Generate a main.py driver that imports all generated modules."""
+    import_lines = "\n".join(f"    from {m.lower()} import *" for m in module_names)
+    mod_help = []
+    for mod in spec.modules:
+        if mod.name in module_names:
+            g = " ".join(sorted(set(m.glyph for m in mod.methods)))
+            mod_help.append(f'    print("  {g:<6} {mod.name:<22} {mod.description[:50]}")')
+    help_block = "\n".join(mod_help)
+    driver = f'"""\n{{PROJNAME}} — SCP-Generated Application\n"""\nimport sys, os\ntry:\n{import_lines}\nexcept ImportError as e:\n    print(f"⚠ Module import error: {{e}}")\n\ndef show_help():\n    print("=" * 60)\n    print("◬  {{PROJNAME}} — SCP-Generated")\n    print("=" * 60)\n    print()\n    print("Modules:")\n{help_block}\n    print()\n    print("Run with: python main.py <command> [args]")\n\nif __name__ == "__main__":\n    show_help()\n'
+    with open(os.path.join(output_dir, "main.py"), "w", encoding="utf-8") as f:
+        f.write(driver)
+
+
+def main():
+    bridge = SCPBridge(SPEC)
+    module_name = None
+    use_gemini = False
+    generate_all = False
+    with_tests = False
+    model = DEFAULT_MODEL
+    output_dir = None
+    args = sys.argv[1:]
+    i = 0
+    while i < len(args):
+        if args[i] == "--gemini":
+            use_gemini = True
+        elif args[i] == "--all":
+            generate_all = True
+            use_gemini = True
+        elif args[i] == "--with-tests":
+            with_tests = True
+        elif args[i] == "--model" and i + 1 < len(args):
+            i += 1
+            model = args[i]
+        elif args[i] == "--output-dir" and i + 1 < len(args):
+            i += 1
+            output_dir = args[i]
+        elif not args[i].startswith("-"):
+            module_name = args[i]
+        i += 1
+
+    if generate_all:
+        if output_dir is None:
+            output_dir = os.path.join(os.path.dirname(__file__), "generated")
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            print("\n⚠ Set GEMINI_API_KEY first.\n")
+            return
+        try:
+            from google import genai
+            client = genai.Client(api_key=api_key)
+        except ImportError:
+            print("\n⚠ pip install google-genai\n")
+            return
+        modules = [m.name for m in bridge.spec.modules]
+        print("=" * 70)
+        print("◬  SCP Batch Generation: {{PROJNAME}}")
+        print(f"   Generating {len(modules)} modules with {model}")
+        if with_tests:
+            print("   Tests: enabled (will generate + run pytest)")
+        print(f"   Output: {output_dir}")
+        print("=" * 70)
+        results = {}
+        for idx, mod_name in enumerate(modules, 1):
+            print(f"\n{'─' * 70}")
+            print(f"  [{idx}/{len(modules)}] {mod_name}")
+            print(f"{'─' * 70}")
+            result = _generate_module(bridge, mod_name, model, client, output_dir)
+            if result:
+                code, verif = result
+                v_line = verif.upper().split("\n")[0] if verif else ""
+                results[mod_name] = "PASS" if "PASS" in v_line else "FAIL"
+                if with_tests and output_dir:
+                    test_status = _generate_tests(bridge, mod_name, code, model, client, output_dir)
+                    results[mod_name] = f"{results[mod_name]}/{test_status}"
+            else:
+                results[mod_name] = "ERROR"
+        ok_mods = [m for m, s in results.items() if not s.startswith("ERROR")]
+        _generate_main_driver(output_dir, ok_mods, bridge.spec)
+        print(f"\n{'=' * 70}")
+        title = "𓂀  Batch Generation Complete!" + (" (with tests)" if with_tests else "")
+        print(title)
+        print(f"{'=' * 70}\n")
+        if with_tests:
+            print(f"  {'Module':<25} {'Weaver':^8} {'Pytest':^8}")
+            print(f"  {'─' * 45}")
+            for mod_name, status in results.items():
+                parts = status.split("/") if "/" in status else [status, "—"]
+                w_icon = "✔" if parts[0] == "PASS" else "✘"
+                print(f"  {w_icon} {mod_name:<24} {parts[0]:^8} {parts[1] if len(parts) > 1 else '—':^8}")
+        else:
+            for mod_name, status in results.items():
+                icon = "✔" if status == "PASS" else "✘"
+                print(f"  {icon} {mod_name:<25} {status}")
+        p = sum(1 for s in results.values() if s.startswith("PASS"))
+        print(f"\n  {p}/{len(results)} modules passed Weaver verification")
+        print(f"  Output: {output_dir}/")
+        print(f"\n  Run: python {os.path.join(output_dir, 'main.py')}")
+        return
+
+    if module_name is None:
+        print("=" * 70)
+        print("◬  SCP Architecture: {{PROJNAME}}")
+        print("=" * 70)
+        print()
+        for mod in SPEC.modules:
+            glyphs = " ".join(sorted(set(m.glyph for m in mod.methods)))
+            print(f"  {glyphs}  {mod.name:<25} {len(mod.methods)} methods")
+        print()
+        print("Generate ALL modules at once:")
+        print("  python {{SPECBASE}} --all")
+        print()
+        print("Generate ALL modules + auto-generate and run tests:")
+        print("  python {{SPECBASE}} --all --with-tests")
+        print()
+        print("Generate a single module:")
+        for mod in SPEC.modules:
+            print(f"  python {{SPECBASE}} {mod.name} --gemini")
+        print()
+        print("Choose a model:")
+        for m in SUPPORTED_MODELS:
+            tag = " ← default" if m == DEFAULT_MODEL else ""
+            print(f"  python {{SPECBASE}} --all --model {m}{tag}")
+        return
+
+    # Single module
+    prompt = bridge.generate_system_prompt(module_name, language="{{LANGUAGE}}")
+    print("=" * 70)
+    print(f"◬  SCP System Prompt: {module_name}")
+    print(f"   Size: {len(prompt)} chars (~{len(prompt.split())} tokens)")
+    print("=" * 70)
+    if use_gemini:
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            print("\n⚠ Set GEMINI_API_KEY first.\n")
+        else:
+            try:
+                from google import genai
+                client = genai.Client(api_key=api_key)
+                result = _generate_module(bridge, module_name, model, client, output_dir)
+                if result and not output_dir:
+                    code, verif = result
+                    print(f"\n{'─' * 70}")
+                    print(code)
+                    print(f"{'─' * 70}")
+                    print(verif)
+                return
+            except ImportError:
+                print("\n⚠ pip install google-genai\n")
+    print()
+    print("─" * 70)
+    print(prompt)
+    print("─" * 70)
+
+
+if __name__ == "__main__":
+    main()
