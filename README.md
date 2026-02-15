@@ -19,6 +19,12 @@
 - [The Five Glyphs](#the-five-glyphs)
 - [Empirical Results](#empirical-results)
 - [Project Chevron: The Implementation](#project-chevron-the-implementation)
+- [Using SCP with AI Agents](#using-scp-with-ai-agents-gemini-gpt-claude)
+- [SCP Forge — Auto-Decomposition](#scp-forge--automatic-codebase-decomposition)
+- [Static Verifier](#static-verifier)
+- [Language Extensions](#language-extensions)
+- [Auto-Test Generation](#auto-test-generation)
+- [Real-World Example: TurboScribe](#real-world-example-turboscribe)
 - [Quick Start](#quick-start)
 - [Language Specification](#language-specification)
 - [Architecture](#architecture)
@@ -187,24 +193,35 @@ Project Chevron is the **reference implementation** of SCP — a working glyph-b
 
 ```
 chevron/
-├── SPEC.md                     # Formal language specification
-├── README.md                   # This file
-├── index.html                  # SCP research website with infographics
-├── scp_bridge.py               # ★ SCP → AI Agent system prompt generator
-├── repl.py                     # Interactive REPL
-├── run.py                      # File runner (execute .chevron files)
-├── chevron/                    # The interpreter
-│   ├── __init__.py             # Package exports
-│   ├── glyphs.py               # Glyph registry — bijective singleton map
-│   ├── lexer.py                # Unicode tokenizer
-│   ├── parser.py               # Recursive-descent AST builder
-│   └── interpreter.py          # Tree-walking executor
-└── examples/                   # Example programs
-    ├── hello.chevron            # Hello World
-    ├── pipeline.chevron         # Origin → Filter → Witness
-    ├── recursion.chevron        # Fold Time countdown
-    ├── weave_filter.chevron     # Weave + Filter composition
-    └── gemini_example.py        # ★ Complete Gemini integration demo
+├── SPEC.md                        # Formal language specification
+├── README.md                      # This file
+├── SCP_TESTING.md                 # Auto-test generation docs
+├── EXTENSIONS.md                  # Language extension docs
+├── index.html                     # SCP research website
+├── scp_bridge.py                  # ★ SCP → AI Agent system prompt generator
+├── forge.py                       # ★ Automatic codebase → SCP decomposition
+├── repl.py                        # Interactive REPL
+├── run.py                         # File runner (execute .chevron files)
+├── chevron/                       # The interpreter
+│   ├── __init__.py                # Package exports
+│   ├── glyphs.py                  # Glyph registry — bijective singleton map
+│   ├── lexer.py                   # Tokenizer (snake_case + keywords)
+│   ├── parser.py                  # Parser (modules, specs, types, errors)
+│   ├── interpreter.py             # Executor (module scope, spec mode)
+│   └── verifier.py                # ★ Static SCP constraint verifier (6 checks)
+├── templates/                     # Code generation templates
+│   └── spec_cli.py.template       # CLI scaffold for forge-generated projects
+├── tests/                         # Test suite
+│   └── test_chevron.py            # 45 tests (lexer, parser, interp, verifier)
+└── examples/                      # Example programs
+    ├── hello.chevron               # Hello World
+    ├── pipeline.chevron            # Origin → Filter → Witness
+    ├── recursion.chevron           # Fold Time countdown
+    ├── weave_filter.chevron        # Weave + Filter composition
+    ├── todo.chevron                # Todo app SCP spec
+    ├── turboscribe.chevron         # TurboScribe SCP spec (9 modules)
+    ├── turboscribe_example.py      # ★ Full TurboScribe generation demo
+    └── gemini_example.py           # Gemini integration demo
 ```
 
 ---
@@ -320,6 +337,112 @@ python examples/gemini_example.py
 ```
 
 This runs the full 4-step workflow: template → prompt → generate → verify.
+
+---
+
+## SCP Forge — Automatic Codebase Decomposition
+
+The **Forge** (`forge.py`) scans any existing codebase and uses Gemini to automatically decompose it into an SCP architecture — modules, types, dependency graph, forbidden zones, and glyph assignments.
+
+### How It Works
+
+```
+1. ◬ Scan       — discover files, count tokens, extract symbols
+2. ☤ Decompose  — Gemini analyzes and proposes module boundaries
+3. ☾ Generate   — output .chevron spec + Python ArchitectureSpec
+4. 𓂀 Report     — display compression ratio and architecture map
+```
+
+### Usage
+
+```bash
+# Decompose a codebase
+python forge.py /path/to/your/project
+
+# Specify output directory and model
+python forge.py /path/to/project --output ./scp_output --model gemini-2.5-flash
+
+# Scan only (no AI call)
+python forge.py /path/to/project --scan-only
+```
+
+The Forge generates:
+- A `.chevron` spec file (verifiable with `--verify`)
+- A Python `ArchitectureSpec` file (usable with `scp_bridge.py`)
+- A CLI scaffold from `templates/spec_cli.py.template`
+
+---
+
+## Static Verifier
+
+The Chevron verifier (`chevron/verifier.py`) runs 6 static checks on the parsed AST *before* execution, enforcing SCP constraints at the language level:
+
+| Check | Glyph | Rule | Level |
+|-------|-------|------|-------|
+| Origin count | ◬ | Exactly one per scope | Error |
+| Witness terminal | 𓂀 | Must be last in pipeline | Error |
+| Fold arguments | ☾ | Requires predicate + transform | Error |
+| Forbidden deps | — | No references to forbidden modules | Error |
+| Circular deps | — | No cycles in `depends_on` graph | Error |
+| Type annotations | — | Warn on undeclared types | Warning |
+
+```bash
+# Verify an architecture spec
+python run.py examples/turboscribe.chevron --verify
+# ✔ SCP verification passed (W(G) = 0)
+```
+
+When the verifier reports **W(G) = 0**, the program's glyph graph has zero constraint violations.
+
+---
+
+## Language Extensions
+
+Chevron v0.2 adds modules, specs, types, and a static verifier while preserving the 5 primitive glyphs unchanged. Key additions:
+
+- **Module system** — isolated scopes with `imports`, `exports`, `forbidden`, and `constraint`
+- **Spec mode** — architecture-only declarations (never executed), verifiable before any code exists
+- **Type declarations** — structural types (e.g., `type MediaFile = { path: str, size: int }`) for pipeline contracts
+- **Snake case identifiers** — `find_media` is a single token
+- **Function calls in predicates** — `Ө {is_prime 2}`
+- **Error accumulation** — parser reports all errors, not just the first
+
+See [EXTENSIONS.md](EXTENSIONS.md) for the full specification.
+
+---
+
+## Auto-Test Generation
+
+The `--with-tests` flag adds contract-driven test generation to the SCP pipeline:
+
+```bash
+# Generate all modules with AI, verify each, and run auto-tests
+python examples/turboscribe_example.py --all --with-tests
+```
+
+Tests are generated from the **SCP contract** (not from the implementation), verifying:
+- **Structural** — methods exist with correct signatures
+- **Constraint** — module-specific rules via AST inspection
+- **Behavioral** — return types, edge cases, error handling (mocked)
+- **Isolation** — no forbidden imports, no global mutable state
+
+See [SCP_TESTING.md](SCP_TESTING.md) for full documentation.
+
+---
+
+## Real-World Example: TurboScribe
+
+The TurboScribe example demonstrates SCP on a real 110K-token audio processing backend, decomposed into 9 isolated modules:
+
+```bash
+# Generate all 9 modules
+python examples/turboscribe_example.py --all --with-tests
+
+# Generate a single module
+python examples/turboscribe_example.py Transcriber --gemini
+```
+
+See [examples/README.md](examples/README.md) for the full walkthrough.
 
 ---
 
