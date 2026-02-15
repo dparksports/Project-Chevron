@@ -786,17 +786,37 @@ def main():
             return
 
         modules = [m.name for m in bridge.spec.modules]
+        api_calls_per_mod = 3 if with_tests else 2
+        est_sec_per_call = 30  # rough estimate per Gemini API call
+        est_total = len(modules) * api_calls_per_mod * est_sec_per_call
+        est_min = est_total / 60
         print("=" * 70)
         print("◬  SCP Batch Generation: TurboScribe")
         print(f"   Generating {len(modules)} modules with {model}")
+        if with_tests:
+            print("   Tests: enabled (will generate + run pytest)")
         print(f"   Output: {output_dir}")
+        print(f"   Estimated time: ~{est_min:.0f} min ({api_calls_per_mod} API calls × {len(modules)} modules)")
         print("=" * 70)
 
+        import time
+        batch_start = time.time()
         results = {}
+        timings = {}
         for idx, mod_name in enumerate(modules, 1):
-            print(f"\n{'─' * 70}")
-            print(f"  [{idx}/{len(modules)}] {mod_name}")
-            print(f"{'─' * 70}")
+            mod_start = time.time()
+            elapsed = mod_start - batch_start
+            if idx > 1 and timings:
+                avg_per_mod = elapsed / (idx - 1)
+                remaining = avg_per_mod * (len(modules) - idx + 1)
+                eta_min = remaining / 60
+                print(f"\n{'─' * 70}")
+                print(f"  [{idx}/{len(modules)}] {mod_name}  (ETA: ~{eta_min:.1f} min remaining)")
+                print(f"{'─' * 70}")
+            else:
+                print(f"\n{'─' * 70}")
+                print(f"  [{idx}/{len(modules)}] {mod_name}")
+                print(f"{'─' * 70}")
 
             result = generate_module(bridge, mod_name, model, client, output_dir)
             if result:
@@ -809,6 +829,7 @@ def main():
                     results[mod_name] = f"{results[mod_name]}/{test_status}"
             else:
                 results[mod_name] = "ERROR"
+            timings[mod_name] = time.time() - mod_start
 
         # ─── Generate main.py driver ───
         print(f"\n{'─' * 70}")
@@ -839,7 +860,13 @@ def main():
                 print(f"  {icon} {mod_name:<25} {status}")
 
         passed = sum(1 for s in results.values() if s.startswith("PASS"))
+        total_elapsed = time.time() - batch_start
         print(f"\n  {passed}/{len(results)} modules passed Weaver verification")
+        print(f"  Total time: {total_elapsed / 60:.1f} min ({total_elapsed:.0f}s)")
+        print()
+        print(f"  Per-module timing:")
+        for mod_name, t in timings.items():
+            print(f"    {mod_name:<25} {t:.1f}s")
         print(f"  Output saved to: {output_dir}/")
         print()
         print("  Run the generated app:")
