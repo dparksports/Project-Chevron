@@ -1,0 +1,241 @@
+◬ SCP Generated: SearchEngine
+Model: gemini-3-pro-preview
+============================================================
+
+```python
+import os
+import glob
+import logging
+from dataclasses import dataclass
+from typing import List, Optional, Tuple, Dict, Any
+
+# ◬ SCP System Prompt — Module: SearchEngine
+# ◬ Protocol: Spatial Constraint Protocol v1.0
+
+@dataclass
+class SearchResult:
+    """
+    Data contract for search results.
+    """
+    file_path: str
+    line_number: int
+    content: str
+    score: float
+    timestamp: Optional[str] = None
+    context_before: Optional[str] = None
+    context_after: Optional[str] = None
+
+class SearchEngine:
+    """
+    ◬ Module: SearchEngine
+    Purpose: Searches transcripts by keyword or semantic embedding similarity.
+    
+    Constraints:
+    - Read-only access to transcripts.
+    - Fallback to keyword search if semantic models unavailable.
+    - No dependencies on VoiceDetector, Transcriber, etc.
+    """
+
+    def __init__(self):
+        self.logger = logging.getLogger("SearchEngine")
+
+    def _parse_line(self, line: str) -> Tuple[Optional[str], str]:
+        """
+        Parses a transcript line into (timestamp, content).
+        Assumes format '[HH:MM:SS] content' or just 'content'.
+        """
+        line = line.strip()
+        if line.startswith("[") and "]" in line:
+            try:
+                end_idx = line.index("]")
+                timestamp = line[1:end_idx]
+                content = line[end_idx+1:].strip()
+                return timestamp, content
+            except ValueError:
+                pass
+        return None, line
+
+    def _get_context(self, lines: List[str], idx: int) -> Tuple[Optional[str], Optional[str]]:
+        """Retrieves surrounding lines for context."""
+        before = None
+        after = None
+        
+        if idx > 0:
+            _, before = self._parse_line(lines[idx - 1])
+            
+        if idx < len(lines) - 1:
+            _, after = self._parse_line(lines[idx + 1])
+            
+        return before, after
+
+    # ◬ Origin: The Filter
+    def keyword_search(self, directory: str, query: str) -> List[SearchResult]:
+        """
+        Ө The Filter: Filters transcripts — only matching lines pass.
+        
+        Contract: Accepts (predicate, data) → Produces filtered data
+        Constraint: Must never modify data that passes through. Reject, don't transform.
+        
+        Args:
+            directory: Directory containing transcript files.
+            query: Keyword to search for.
+            
+        Returns:
+            List of SearchResult objects.
+        """
+        results: List[SearchResult] = []
+        
+        # Universal contract: filename_transcript_modelname.txt
+        search_pattern = os.path.join(directory, "*_transcript_*.txt")
+        files = glob.glob(search_pattern)
+        
+        if not files:
+            self.logger.warning(f"No transcript files found in {directory}")
+            return results
+
+        query_lower = query.lower()
+
+        for file_path in files:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+                
+                for i, line in enumerate(lines):
+                    timestamp, content = self._parse_line(line)
+                    
+                    # The Filter: Predicate check
+                    if query_lower in content.lower():
+                        before, after = self._get_context(lines, i)
+                        
+                        result = SearchResult(
+                            file_path=file_path,
+                            line_number=i + 1,
+                            content=content,
+                            score=1.0, # Exact match confidence
+                            timestamp=timestamp,
+                            context_before=before,
+                            context_after=after
+                        )
+                        results.append(result)
+                        
+            except Exception as e:
+                self.logger.error(f"Failed to read {file_path}: {e}")
+                continue
+
+        return results
+
+    # ◬ Origin: The Filter
+    def semantic_search(self, directories: List[str], query: str, model_name: str) -> List[SearchResult]:
+        """
+        Ө The Filter: Filters transcripts by embedding cosine similarity.
+        
+        Contract: Accepts (predicate, data) → Produces filtered data
+        Constraint: Must never modify data that passes through.
+        Fallback: Must fallback to keyword search if sentence-transformers unavailable.
+        
+        Args:
+            directories: List of directories to search.
+            query: Semantic query string.
+            model_name: Name of the embedding model to use.
+            
+        Returns:
+            List of SearchResult objects sorted by relevance.
+        """
+        # ⚠️ Semantic search must fallback to keyword search if sentence-transformers unavailable
+        try:
+            from sentence_transformers import SentenceTransformer, util
+            import torch
+        except ImportError:
+            self.logger.warning("sentence-transformers not installed. Falling back to keyword_search.")
+            fallback_results = []
+            for d in directories:
+                fallback_results.extend(self.keyword_search(d, query))
+            return fallback_results
+
+        corpus_data: List[Dict[str, Any]] = []
+        corpus_texts: List[str] = []
+        
+        # 1. Gather Data (Read-only)
+        for directory in directories:
+            search_pattern = os.path.join(directory, "*_transcript_*.txt")
+            files = glob.glob(search_pattern)
+            
+            for file_path in files:
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        lines = f.readlines()
+                        
+                    for i, line in enumerate(lines):
+                        timestamp, content = self._parse_line(line)
+                        if not content.strip():
+                            continue
+                            
+                        before, after = self._get_context(lines, i)
+                        
+                        corpus_data.append({
+                            "file_path": file_path,
+                            "line_number": i + 1,
+                            "content": content,
+                            "timestamp": timestamp,
+                            "context_before": before,
+                            "context_after": after
+                        })
+                        corpus_texts.append(content)
+                        
+                except Exception as e:
+                    self.logger.error(f"Failed to read {file_path}: {e}")
+
+        if not corpus_texts:
+            return []
+
+        # 2. Compute Embeddings & Filter
+        try:
+            # Graceful GPU -> CPU fallback
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            model = SentenceTransformer(model_name, device=device)
+            
+            # Encode
+            corpus_embeddings = model.encode(corpus_texts, convert_to_tensor=True)
+            query_embedding = model.encode(query, convert_to_tensor=True)
+            
+            # Cosine similarity
+            cos_scores = util.cos_sim(query_embedding, corpus_embeddings)[0]
+            
+            # Filter: Top K results with threshold
+            k = min(len(corpus_texts), 100)
+            top_results = torch.topk(cos_scores, k=k)
+            
+            results = []
+            for score, idx in zip(top_results.values, top_results.indices):
+                if score < 0.25: # Relevance threshold
+                    continue
+                    
+                idx_int = int(idx)
+                data = corpus_data[idx_int]
+                
+                result = SearchResult(
+                    file_path=data["file_path"],
+                    line_number=data["line_number"],
+                    content=data["content"],
+                    score=float(score),
+                    timestamp=data["timestamp"],
+                    context_before=data["context_before"],
+                    context_after=data["context_after"]
+                )
+                results.append(result)
+                
+            return results
+
+        except Exception as e:
+            self.logger.error(f"Semantic search failed: {e}. Falling back to keyword search.")
+            fallback_results = []
+            for d in directories:
+                fallback_results.extend(self.keyword_search(d, query))
+            return fallback_results
+```
+
+============================================================
+☤ Weaver Verification
+============================================================
+
+PASS: All checks satisfied. W(G) = 0.

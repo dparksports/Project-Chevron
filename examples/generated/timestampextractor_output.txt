@@ -1,0 +1,352 @@
+◬ SCP Generated: TimestampExtractor
+Model: gemini-3-pro-preview
+============================================================
+
+```python
+import os
+import re
+import shutil
+import logging
+from typing import List, Optional, Tuple, Dict, Any, Callable
+from dataclasses import dataclass
+from collections import Counter
+from pathlib import Path
+import cv2
+from PIL import Image
+import torch
+from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor
+
+# ◬ SCP System Prompt — Module: TimestampExtractor
+# Protocol: Spatial Constraint Protocol v1.0
+
+# ==============================================================================
+# 🔗 Visible Dependency Interfaces
+# ==============================================================================
+
+class MediaFile:
+    """Stub for MediaFile to satisfy type hinting. Implementation hidden."""
+    path: str
+
+class DeviceConfig:
+    """Stub for DeviceConfig. Implementation hidden."""
+    device: str
+    dtype: str
+
+class AudioIngest:
+    """
+    Interface for AudioIngest.
+    Discovers and loads media files from directories.
+    """
+    @staticmethod
+    def find_media(directory: str) -> List[MediaFile]:
+        raise NotImplementedError("Interface only")
+
+    @staticmethod
+    def load_audio(file_path: str) -> Any:
+        raise NotImplementedError("Interface only")
+
+    @staticmethod
+    def get_device_config(override: str | None) -> DeviceConfig:
+        raise NotImplementedError("Interface only")
+
+# ==============================================================================
+# 📋 Module Contract: TimestampExtractor
+# ==============================================================================
+
+@dataclass
+class TimestampResult:
+    original_path: str
+    detected_timestamp: Optional[str]
+    confidence: float
+    consensus_count: int
+    total_frames: int
+
+@dataclass
+class RenameResult:
+    original_path: str
+    new_path: Optional[str]
+    status: str  # "renamed", "skipped", "failed"
+    timestamp: Optional[str]
+
+class _QwenVLSingleton:
+    """
+    Internal Singleton to manage the Qwen2.5-VL model lifecycle.
+    Ensures lazy loading and caching.
+    """
+    _instance = None
+    _model = None
+    _processor = None
+    _device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    def get_model(self):
+        if self._model is None:
+            print(f"◬ Loading Qwen2.5-VL on {self._device}...")
+            # Using Qwen2.5-VL-3B-Instruct or similar variant suitable for OCR
+            model_id = "Qwen/Qwen2.5-VL-3B-Instruct"
+            
+            # Load Processor
+            self._processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
+            
+            # Load Model
+            self._model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+                model_id,
+                torch_dtype=torch.bfloat16 if self._device == "cuda" else torch.float32,
+                device_map="auto" if self._device == "cuda" else None,
+                trust_remote_code=True
+            )
+            if self._device == "cpu":
+                self._model.to("cpu")
+                
+        return self._model, self._processor, self._device
+
+class TimestampExtractor:
+    """
+    Extracts burned-in timestamps from video frames using Qwen2.5-VL vision model.
+    Operates independently of the transcription pipeline.
+    """
+
+    def __init__(self):
+        self.logger = logging.getLogger("TimestampExtractor")
+        # Regex for common timestamp formats (YYYY-MM-DD HH:MM:SS, etc.)
+        self.timestamp_pattern = re.compile(r"(\d{4}[-/_]\d{2}[-/_]\d{2}[-/_ ]\d{2}[:\-_]\d{2}[:\-_]\d{2})")
+        # Regex to check if file is already renamed (starts with YYYY-MM-DD)
+        self.already_renamed_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}_")
+
+    # ☾ Fold Time
+    def extract_timestamps(self, video_path: str, num_frames: int = 5) -> TimestampResult:
+        """
+        Folds multiple frames through VLM — iterates to consensus timestamp.
+        
+        Contract: Accepts (predicate, transform, value) → Produces final value
+        Glyph: Fold Time
+        """
+        if not os.path.exists(video_path):
+            return TimestampResult(video_path, None, 0.0, 0, num_frames)
+
+        temp_dir = Path(f"temp_frames_{os.path.basename(video_path)}")
+        temp_dir.mkdir(exist_ok=True)
+        
+        frames_paths = []
+        
+        try:
+            # 1. Extract Frames (Transform: Video -> List[ImagePaths])
+            frames_paths = self._extract_frames(video_path, temp_dir, num_frames)
+            
+            if not frames_paths:
+                return TimestampResult(video_path, None, 0.0, 0, num_frames)
+
+            # 2. Fold: Process frames recursively/iteratively to build consensus
+            # Predicate: frames remaining
+            # Transform: Image -> Text Timestamp
+            # Value: Counter of timestamps
+            votes = Counter()
+            
+            model, processor, device = _QwenVLSingleton.get_instance().get_model()
+
+            for frame_path in frames_paths:
+                timestamp = self._process_frame(model, processor, device, frame_path)
+                if timestamp:
+                    votes[timestamp] += 1
+
+            # 3. Consensus
+            if not votes:
+                return TimestampResult(video_path, None, 0.0, 0, num_frames)
+
+            most_common_ts, count = votes.most_common(1)[0]
+            confidence = count / len(frames_paths)
+
+            return TimestampResult(
+                original_path=video_path,
+                detected_timestamp=most_common_ts,
+                confidence=confidence,
+                consensus_count=count,
+                total_frames=len(frames_paths)
+            )
+
+        finally:
+            # Cleanup (Constraint: Must clean up temporary frame files)
+            if temp_dir.exists():
+                shutil.rmtree(temp_dir)
+
+    # ☾ Fold Time
+    def batch_rename(self, folder_path: str, crop_ratio: float = 0.0) -> List[RenameResult]:
+        """
+        Recursively folds all videos through timestamp extraction + rename.
+        
+        Contract: Accepts (predicate, transform, value) → Produces final value
+        Glyph: Fold Time
+        """
+        # 1. Discovery (via AudioIngest interface)
+        media_files = AudioIngest.find_media(folder_path)
+        results: List[RenameResult] = []
+
+        # 2. Fold over files
+        for media in media_files:
+            file_path = media.path
+            filename = os.path.basename(file_path)
+
+            # Predicate: Skip if already renamed
+            if self.already_renamed_pattern.match(filename):
+                results.append(RenameResult(file_path, None, "skipped", None))
+                continue
+
+            # Transform: Extract Timestamp
+            # Note: crop_ratio is currently unused in extraction logic but reserved for future ROI cropping
+            ts_result = self.extract_timestamps(file_path, num_frames=5)
+
+            if ts_result.detected_timestamp and ts_result.confidence >= 0.5:
+                # Normalize timestamp for filename (YYYY-MM-DD_HH-MM-SS)
+                safe_ts = self._normalize_timestamp(ts_result.detected_timestamp)
+                if safe_ts:
+                    dir_name = os.path.dirname(file_path)
+                    extension = os.path.splitext(file_path)[1]
+                    new_filename = f"{safe_ts}_{filename}"
+                    new_path = os.path.join(dir_name, new_filename)
+
+                    try:
+                        os.rename(file_path, new_path)
+                        results.append(RenameResult(file_path, new_path, "renamed", safe_ts))
+                    except OSError as e:
+                        self.logger.error(f"Failed to rename {file_path}: {e}")
+                        results.append(RenameResult(file_path, None, "failed", safe_ts))
+                else:
+                    results.append(RenameResult(file_path, None, "failed", ts_result.detected_timestamp))
+            else:
+                results.append(RenameResult(file_path, None, "failed", None))
+
+        return results
+
+    # --------------------------------------------------------------------------
+    # Internal Helpers (Private)
+    # --------------------------------------------------------------------------
+
+    def _extract_frames(self, video_path: str, output_dir: Path, num_frames: int) -> List[str]:
+        """Extracts N frames evenly spaced from the video."""
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            return []
+
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        if total_frames <= 0:
+            cap.release()
+            return []
+
+        # If video is short, take frames from the beginning
+        step = max(1, total_frames // (num_frames + 1))
+        frame_paths = []
+
+        for i in range(num_frames):
+            frame_idx = (i + 1) * step
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+            ret, frame = cap.read()
+            if ret:
+                frame_path = output_dir / f"frame_{i}.jpg"
+                cv2.imwrite(str(frame_path), frame)
+                frame_paths.append(str(frame_path))
+
+        cap.release()
+        return frame_paths
+
+    def _process_frame(self, model, processor, device, image_path: str) -> Optional[str]:
+        """Runs Qwen2.5-VL on a single frame to extract timestamp text."""
+        try:
+            image = Image.open(image_path)
+            
+            # Prompt engineering for Qwen2.5-VL
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "image", "image": image},
+                        {"type": "text", "text": "Read the date and time timestamp burned into this video frame. Return ONLY the timestamp in format YYYY-MM-DD HH:MM:SS. If none exists, say 'None'."},
+                    ],
+                }
+            ]
+
+            text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+            
+            image_inputs, video_inputs = process_vision_info(messages) # Helper from qwen_vl_utils usually, but we simulate standard flow
+            
+            # Standard HF processing
+            inputs = processor(
+                text=[text],
+                images=image_inputs,
+                videos=video_inputs,
+                padding=True,
+                return_tensors="pt",
+            )
+            inputs = inputs.to(device)
+
+            # Inference
+            generated_ids = model.generate(**inputs, max_new_tokens=50)
+            generated_ids_trimmed = [
+                out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
+            ]
+            output_text = processor.batch_decode(
+                generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
+            )[0]
+
+            # Parse output
+            match = self.timestamp_pattern.search(output_text)
+            if match:
+                return match.group(1)
+            return None
+
+        except Exception as e:
+            self.logger.error(f"Frame processing error: {e}")
+            return None
+
+    def _normalize_timestamp(self, raw_ts: str) -> Optional[str]:
+        """Normalizes various timestamp formats to YYYY-MM-DD_HH-MM-SS."""
+        # Replace common separators with standard ones
+        clean = raw_ts.replace("/", "-").replace(":", "-").replace(" ", "_")
+        # Basic validation could go here
+        return clean
+
+# Helper to simulate qwen_vl_utils.process_vision_info if not available, 
+# or assume the environment has the necessary utils. 
+# For this implementation, we assume the standard input preparation for QwenVL.
+def process_vision_info(messages):
+    """
+    Minimal implementation/shim for extracting image objects for the processor.
+    """
+    images = []
+    for message in messages:
+        for content in message["content"]:
+            if content["type"] == "image":
+                images.append(content["image"])
+    return images, None
+```
+
+============================================================
+☤ Weaver Verification
+============================================================
+
+# ☤ SCP Weaver Verification
+
+**Result: FAIL**
+
+The code violates the Spatial Constraint Protocol (SCP) specifications, specifically regarding the Glyph contracts and Coupling Detection rules.
+
+## Violations
+
+### 1. Glyph Contract Violation: `batch_rename`
+- **Line:** 168 (`os.rename(file_path, new_path)`)
+- **Constraint:** Glyph ☾ (Fold Time)
+- **Explanation:** The `batch_rename` method is governed by the **☾ (Fold Time)** glyph, which explicitly states: **"Must not mutate external state."** The code performs `os.rename`, which permanently alters the file system. To conform to ☾, this method should return a list of planned renames (values) without executing the side effect. The execution of renames belongs to a ⚡ (Action) or ☵ (State) glyph.
+
+### 2. Glyph Contract Violation: `extract_timestamps`
+- **Line:** 126 (`temp_dir.mkdir`), 145 (`cv2.imwrite`)
+- **Constraint:** Glyph ☾ (Fold Time)
+- **Explanation:** The `extract_timestamps` method is governed by the **☾ (Fold Time)** glyph (**"Must not mutate external state"**). The code creates directories and writes image files to the disk. While cleanup is implemented, this constitutes mutation of external state and usage of implicit I/O channels. To conform, the module should perform frame extraction in-memory (e.g., converting OpenCV frames to PIL images directly) without touching the file system.
+
+### 3. Coupling Detection: Implicit Channels
+- **Line:** 126, 145, 168
+- **Constraint:** W(G) = 0 (No implicit channels - file I/O)
+- **Explanation:** The module relies on the file system as an implicit channel for processing frames and storing state (renamed files). SCP requires strict isolation; data should be passed via arguments and return values, not via the disk.
