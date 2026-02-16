@@ -1,0 +1,182 @@
+# ◬ Nexus IDE Architecture in Chevron
+# SCP-Powered AI Development Environment (Self-Specification)
+# 7 SCP modules · 4 layers · 5 glyph primitives
+#
+# Nexus eats its own dog food — this file defines the IDE's own
+# architecture using the same Chevron language it processes.
+
+# ─────────────────────────────────────────────
+# Type Declarations
+# ─────────────────────────────────────────────
+
+type ContextItem = { content: str, source: str, category: str, tokens: int, score: float }
+type SessionState = { architecture: str, active_module: str, code_state: str, edit_history: str }
+type EditEntry = { module: str, code_before: str, code_after: str, verified: bool }
+type ContractSnapshot = { module: str, interface: str, version: int, frozen: bool }
+type ProviderConfig = { provider_name: str, model: str, api_key: str }
+type ProviderResponse = { content: str, provider: str, model: str, tokens_used: int }
+type ArchitectureSpec = { name: str, modules: str, global_constraints: str }
+type TaskPlan = { module: str, request: str, dependencies: str }
+type ExecuteResult = { module: str, code: str, success: bool }
+type VerifyResult = { clean: bool, violations: str }
+
+# ─────────────────────────────────────────────
+# Layer 1: Context Kernel
+# ─────────────────────────────────────────────
+
+spec EntropyScorer
+    exports score, score_all, compute_entropy
+    forbidden [Conductor, Planner, Executor, Verifier, EditLedger]
+    constraint "Pure function — no side effects, no I/O"
+    constraint "Scores must be clamped to [0.0, 1.0]"
+    constraint "Contracts always score 1.0 (source of truth)"
+    constraint "Active module items get 15% boost"
+    constraint "Items from unrelated modules get 50% penalty"
+    constraint "Conversation items decay exponentially with age"
+    # ◬ [ContextItem] → score_all → [scored items] → 𓂀
+end
+
+spec ContextPruner
+    exports prune, compression_ratio
+    forbidden [Conductor, Planner, Executor, Verifier, EditLedger]
+    constraint "Never prune items with category='contract'"
+    constraint "Prune expendable items first, then preferred"
+    constraint "Output total tokens <= budget"
+    constraint "Pure function — deterministic given same inputs"
+    # Ө [scored items] → prune(budget) → [surviving items] → 𓂀
+end
+
+spec SCPRetriever
+    depends_on [EntropyScorer, ContextPruner]
+    imports EntropyScorer, ContextPruner
+    exports retrieve, get_dependency_graph
+    forbidden [Conductor, Planner, Executor, Verifier]
+    constraint "RAG Denial: only return interfaces for dependencies, never full code"
+    constraint "Forbidden modules are completely invisible"
+    constraint "Global constraints always included"
+    constraint "Must not modify architecture spec"
+    # ◬ (module_name, ArchitectureSpec) → retrieve → [ContextItem] → Ө
+end
+
+# ─────────────────────────────────────────────
+# Layer 2: Session Protocol
+# ─────────────────────────────────────────────
+
+spec EditLedger
+    exports record, get_edits, regression_rate, clean_streak, save, load
+    forbidden [Conductor, Planner, Executor, EntropyScorer, ContextPruner]
+    constraint "Append-only — never delete or modify past entries"
+    constraint "Must persist to disk (JSON) for session recovery"
+    constraint "Must track verified vs unverified edits separately"
+    # ◬ EditEntry → record → 𓂀 (append to history)
+end
+
+spec ContractCache
+    exports freeze, get, invalidate, is_frozen, save, load
+    forbidden [Conductor, Planner, Executor, EntropyScorer, ContextPruner]
+    constraint "Frozen contracts are immutable snapshots"
+    constraint "Version increments on each freeze"
+    constraint "Must persist to disk for session recovery"
+    constraint "Invalidation resets frozen status"
+    # ☾ (module, interface) → freeze → ContractSnapshot → 𓂀
+end
+
+spec SessionManager
+    depends_on [EditLedger, ContractCache]
+    imports EditLedger, ContractCache
+    exports set_active_module, update_code, session_health, save, load
+    forbidden [Conductor, Planner, Executor]
+    constraint "Single source of truth for all session state"
+    constraint "Must validate module names against architecture"
+    constraint "Must persist full state atomically"
+    # ☤ SessionState ↔ EditLedger + ContractCache → 𓂀
+end
+
+# ─────────────────────────────────────────────
+# Layer 3: Orchestrator
+# ─────────────────────────────────────────────
+
+spec Planner
+    depends_on [SessionManager]
+    imports SessionManager
+    exports decompose
+    forbidden [EntropyScorer, ContextPruner, EditLedger, ContractCache]
+    constraint "Must respect dependency ordering (topological sort)"
+    constraint "Must produce exactly one task per module"
+    constraint "Must not invoke AI — decomposition is deterministic"
+    # ◬ request → decompose → [TaskPlan] → ☤
+end
+
+spec Executor
+    depends_on [SCPRetriever, SessionManager]
+    imports SCPRetriever, SessionManager
+    exports execute
+    forbidden [EditLedger, ContractCache, EntropyScorer, ContextPruner]
+    constraint "Must include forbidden module warning in system prompt"
+    constraint "Must extract code from markdown fences if present"
+    constraint "Must record all edits to session"
+    constraint "One AI call per module — no retry loops"
+    # ☤ TaskPlan → execute(provider) → ExecuteResult → ☾
+end
+
+spec Verifier
+    depends_on [SessionManager]
+    imports SessionManager
+    exports verify
+    forbidden [Planner, Executor, SCPRetriever, EntropyScorer]
+    constraint "Must check: no forbidden imports"
+    constraint "Must check: no global mutable state"
+    constraint "Must compare before/after diffs"
+    constraint "Must NOT use AI — static analysis only"
+    # 𓂀 ExecuteResult → verify → VerifyResult → 𓂀
+end
+
+spec Conductor
+    depends_on [Planner, Executor, Verifier, SessionManager]
+    imports Planner, Executor, Verifier, SessionManager
+    exports handle_request, get_context_report
+    forbidden [EntropyScorer, ContextPruner, EditLedger, ContractCache]
+    constraint "Must follow Plan → Execute → Verify pipeline per module"
+    constraint "Must freeze contracts after verified clean edits"
+    constraint "Must update session health after every edit"
+    constraint "Primary entry point for all AI-assisted development"
+    # ◬ request → ☤ Planner → ☾ Executor → 𓂀 Verifier → 𓂀
+end
+
+# ─────────────────────────────────────────────
+# AI Provider Abstraction
+# ─────────────────────────────────────────────
+
+spec AIProvider
+    exports generate, is_available
+    forbidden [Conductor, Planner, Verifier, EntropyScorer, SessionManager]
+    constraint "Stateless — no memory between calls"
+    constraint "Must handle rate limiting and retries internally"
+    constraint "Must normalize responses to ProviderResponse"
+    constraint "Lazy-loaded — import SDK only when first used"
+    # ☤ (prompt, system_instruction) → generate → ProviderResponse → 𓂀
+end
+
+# ─────────────────────────────────────────────
+# Full DAG
+# ─────────────────────────────────────────────
+#
+# ◬ EntropyScorer ─────────────┐
+# Ө ContextPruner ─────────────┤
+#                               ├── ◬ SCPRetriever ── ☾ Executor
+# ◬ EditLedger ────┐            │                        │
+# ☾ ContractCache ─┤            │                        ▼
+#                  ├── ☤ SessionManager ── ◬ Planner   𓂀 Verifier
+#                                              │          │
+#                                              └─── ☤ Conductor
+#                                                      │
+#                                                 ☤ AIProvider
+#
+# 𓂀 ProgressWitness observes all, modifies nothing
+
+# ─────────────────────────────────────────────
+# Pipeline demo
+# ─────────────────────────────────────────────
+
+# Request arrives → planner decomposes → each module generated in isolation
+◬ (☤ [["Add auth to the API"]]) → Ө {!= "forbidden"} → 𓂀
