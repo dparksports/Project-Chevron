@@ -4,8 +4,15 @@ Nexus CLI — Command-Line Interface for the SCP-Powered AI IDE
 Entry point for developers to interact with Nexus.
 
 Usage:
+    # Create a new project
+    python -m nexus.cli init myapp --template web-api
+    python -m nexus.cli init myapp --from ./existing_code --key YOUR_KEY
+
+    # List available templates
+    python -m nexus.cli templates
+
     # Show architecture overview
-    python -m nexus.cli overview --spec examples/turboscribe.chevron
+    python -m nexus.cli overview --spec nexus.json
 
     # Generate code for a single module
     python -m nexus.cli generate Transcriber --provider gemini --key YOUR_KEY
@@ -38,6 +45,10 @@ from nexus.session_protocol import SessionState
 from nexus.conductor import Conductor, Planner
 from nexus.providers.base import ProviderConfig
 from nexus.providers.registry import get_provider, list_providers
+from nexus.scaffold import (
+    init_project, list_templates as get_templates, load_spec,
+    print_templates, print_project_summary, spec_from_json,
+)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -45,15 +56,26 @@ from nexus.providers.registry import get_provider, list_providers
 # ─────────────────────────────────────────────────────────────
 
 def load_architecture(spec_path: str = None):
-    """Load architecture spec from a Chevron file or turboscribe example."""
-    # Try loading from turboscribe example (most common case)
+    """Load architecture spec from nexus.json, .chevron file, or turboscribe example."""
+    # 1. If explicit path given, load it
+    if spec_path and os.path.exists(spec_path):
+        if spec_path.endswith(".json"):
+            return load_spec(spec_path)
+        # Could be a Python file with a spec
+        print(f"  Loading spec from: {spec_path}")
+
+    # 2. Look for nexus.json in current directory
+    if os.path.exists("nexus.json"):
+        return load_spec("nexus.json")
+
+    # 3. Try loading from turboscribe example (demo case)
     try:
         from examples.turboscribe_example import TURBOSCRIBE_SPEC
         return TURBOSCRIBE_SPEC
     except ImportError:
         pass
 
-    # Try loading from scp_bridge template
+    # 4. Try loading from scp_bridge template
     try:
         from scp_bridge import SCPBridge
         bridge = SCPBridge.from_template("todo_app")
@@ -246,6 +268,37 @@ def cmd_providers(args):
         print("    # Ollama — no pip needed, just install from ollama.com")
 
 
+def cmd_init(args):
+    """Initialize a new Nexus project."""
+    project_name = getattr(args, "name", "myapp")
+    template = getattr(args, "template", "blank")
+    from_codebase = getattr(args, "from_codebase", None)
+    provider = getattr(args, "provider", "gemini")
+    api_key = getattr(args, "key", "") or os.environ.get("GEMINI_API_KEY", "")
+    model = getattr(args, "model", "")
+    output = getattr(args, "output", None) or f"./{project_name}"
+
+    try:
+        spec_file = init_project(
+            project_dir=output,
+            project_name=project_name,
+            template=template,
+            from_codebase=from_codebase,
+            provider_name=provider,
+            api_key=api_key,
+            model=model,
+        )
+        spec = load_spec(spec_file)
+        print_project_summary(spec, output)
+    except (ValueError, ImportError) as e:
+        print(f"\n✘ {e}")
+
+
+def cmd_templates(args):
+    """List available project templates."""
+    print_templates()
+
+
 # ─────────────────────────────────────────────────────────────
 #  Main
 # ─────────────────────────────────────────────────────────────
@@ -257,9 +310,11 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
+            "  nexus init myapp --template web-api\n"
+            "  nexus init myapp --from ./existing_code --key YOUR_KEY\n"
+            "  nexus templates\n"
             "  nexus overview\n"
             "  nexus generate Transcriber --provider gemini --key YOUR_KEY\n"
-            "  nexus generate --all --provider gemini --key YOUR_KEY\n"
             "  nexus context Transcriber\n"
             "  nexus health\n"
             "  nexus providers\n"
@@ -267,9 +322,25 @@ def main():
     )
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
+    # init
+    p_init = subparsers.add_parser("init", help="Create a new Nexus project")
+    p_init.add_argument("name", help="Project name")
+    p_init.add_argument("--template", "-t", default="blank",
+                        help="Project template (todo-app, web-api, cli-tool, data-pipeline, blank)")
+    p_init.add_argument("--from", dest="from_codebase", default=None,
+                        help="Path to existing codebase to decompose via AI")
+    p_init.add_argument("--provider", default="gemini", help="AI provider for decomposition")
+    p_init.add_argument("--model", default="", help="AI model for decomposition")
+    p_init.add_argument("--key", default="", help="API key for decomposition")
+    p_init.add_argument("--output", "-o", default=None,
+                        help="Output directory (default: ./project_name)")
+
+    # templates
+    subparsers.add_parser("templates", help="List available project templates")
+
     # overview
     p_overview = subparsers.add_parser("overview", help="Show architecture overview")
-    p_overview.add_argument("--spec", help="Path to .chevron spec file")
+    p_overview.add_argument("--spec", help="Path to nexus.json or .chevron spec file")
 
     # generate
     p_gen = subparsers.add_parser("generate", help="Generate code for module(s)")
@@ -281,12 +352,12 @@ def main():
     p_gen.add_argument("--base-url", default="", help="Custom API base URL")
     p_gen.add_argument("--request", default="", help="Custom request description")
     p_gen.add_argument("--output", default=".nexus_session", help="Session output directory")
-    p_gen.add_argument("--spec", help="Path to .chevron spec file")
+    p_gen.add_argument("--spec", help="Path to nexus.json spec file")
 
     # context
     p_ctx = subparsers.add_parser("context", help="Show context report for a module")
     p_ctx.add_argument("module", help="Module name")
-    p_ctx.add_argument("--spec", help="Path to .chevron spec file")
+    p_ctx.add_argument("--spec", help="Path to nexus.json spec file")
 
     # health
     p_health = subparsers.add_parser("health", help="Show session health")
@@ -298,6 +369,8 @@ def main():
     args = parser.parse_args()
 
     commands = {
+        "init": cmd_init,
+        "templates": cmd_templates,
         "overview": cmd_overview,
         "generate": cmd_generate,
         "context": cmd_context,
