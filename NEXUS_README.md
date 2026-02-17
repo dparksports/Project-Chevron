@@ -45,6 +45,25 @@ pip install anthropic          # Anthropic Claude
 # Or install Ollama from https://ollama.com for local models (no pip needed)
 ```
 
+### Dashboard Mode (Recommended for Beginners)
+
+```bash
+# Install the dashboard dependencies
+pip install fastapi uvicorn
+
+# Launch the visual dashboard
+python -m nexus.cli start
+# Opens http://localhost:3000 — no CLI knowledge required!
+```
+
+The dashboard provides a visual interface with:
+- **Template Gallery** — Click to create a project (no commands to memorize)
+- **Architecture Map** — See your modules as an interactive graph
+- **Conductor Chat** — Type what you want in plain English
+- **Health Monitor** — Session metrics at a glance
+
+---
+
 ### Step 2: Create a Project
 
 ```bash

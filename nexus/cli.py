@@ -299,6 +299,24 @@ def cmd_templates(args):
     print_templates()
 
 
+def cmd_start(args):
+    """Launch the Nexus Dashboard web interface."""
+    port = getattr(args, "port", 3000)
+    spec = getattr(args, "spec", None)
+    no_browser = getattr(args, "no_browser", False)
+
+    # Check for uvicorn
+    try:
+        import uvicorn
+    except ImportError:
+        print("✘ uvicorn is required for the dashboard.")
+        print("  Install it with:  pip install uvicorn fastapi")
+        return
+
+    from nexus.server import run_server
+    run_server(port=port, open_browser=not no_browser)
+
+
 # ─────────────────────────────────────────────────────────────
 #  Main
 # ─────────────────────────────────────────────────────────────
@@ -366,6 +384,12 @@ def main():
     # providers
     subparsers.add_parser("providers", help="List available AI providers")
 
+    # start (dashboard)
+    p_start = subparsers.add_parser("start", help="Launch the Nexus Dashboard (web UI)")
+    p_start.add_argument("--port", default=3000, type=int, help="Port number (default: 3000)")
+    p_start.add_argument("--spec", help="Path to nexus.json spec file")
+    p_start.add_argument("--no-browser", action="store_true", help="Don't auto-open browser")
+
     args = parser.parse_args()
 
     commands = {
@@ -376,6 +400,7 @@ def main():
         "context": cmd_context,
         "health": cmd_health,
         "providers": cmd_providers,
+        "start": cmd_start,
     }
 
     if args.command in commands:

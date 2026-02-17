@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus — AI Development Dashboard</title>
+    <meta name="description" content="SCP-Powered AI IDE: Build software one module at a time with zero context entropy.">
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>◬</text></svg>">
+</head>
+<body>
+
+<div id="app">
+
+    <!-- ─── Header ─── -->
+    <header class="header">
+        <div class="header__logo">
+            <span class="glyph">◬</span>
+            <span>Nexus</span>
+        </div>
+        <span id="project-name" class="header__project-name"></span>
+        <nav class="header__nav" id="nav" style="display: none;">
+            <button class="header__nav-btn active" data-view="dashboard">Architecture</button>
+            <button class="header__nav-btn" data-view="health">Health</button>
+            <button class="header__nav-btn" data-view="providers">Providers</button>
+        </nav>
+    </header>
+
+    <!-- ─── Main Shell ─── -->
+    <div class="shell">
+
+        <!-- Sidebar (visible when project is loaded) -->
+        <aside class="sidebar" id="sidebar" style="display: none;">
+            <div class="sidebar__section">
+                <div class="sidebar__title">Modules</div>
+                <ul class="sidebar__module-list" id="module-list"></ul>
+            </div>
+            <div class="sidebar__section health-meter" id="sidebar-health">
+                <div class="sidebar__title">Session Health</div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.8125rem;">
+                    <span>Clean streak</span>
+                    <span id="health-streak" class="mono" style="color: var(--cyan);">0</span>
+                </div>
+                <div class="health-meter__bar">
+                    <div class="health-meter__fill" id="health-bar" style="width: 0%"></div>
+                </div>
+                <div class="health-meter__label">
+                    <span>Regression</span>
+                    <span id="health-regression" class="mono">0%</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="main">
+
+            <!-- View: Welcome (no project) -->
+            <div class="view active" id="view-welcome">
+                <div class="welcome">
+                    <div class="welcome__glyph">◬</div>
+                    <h1 class="welcome__title">Welcome to Nexus</h1>
+                    <p class="welcome__subtitle">
+                        Build software one module at a time, with AI that never loses context.
+                        Choose a template to get started.
+                    </p>
+                    <div class="template-gallery" id="template-gallery">
+                        <!-- Filled dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- View: Dashboard (project loaded) -->
+            <div class="view" id="view-dashboard">
+                <div class="main__canvas">
+                    <canvas id="graph-canvas"></canvas>
+                </div>
+                <!-- Chat Panel -->
+                <div class="chat" id="chat-panel">
+                    <div class="chat__header" id="chat-header">
+                        <span class="chat__header-title">☤ Conductor</span>
+                        <span class="chat__header-status" id="chat-status">Ready</span>
+                        <button class="chat__toggle" id="chat-toggle">▼</button>
+                    </div>
+                    <div class="chat__messages" id="chat-messages">
+                        <div class="chat__msg chat__msg--system">
+                            Welcome! Type a request to generate or modify code.
+                            <br><code>e.g., "Implement the TodoStore module"</code>
+                        </div>
+                    </div>
+                    <div class="chat__input-row">
+                        <input type="text" class="chat__input" id="chat-input"
+                               placeholder="Describe what you want to build or change..."
+                               autocomplete="off">
+                        <button class="chat__send-btn" id="chat-send">Generate</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View: Health -->
+            <div class="view" id="view-health">
+                <div style="padding: 32px; max-width: 640px; margin: 0 auto;">
+                    <h2 style="margin-bottom: 24px;">𓂀 Session Health</h2>
+                    <div id="health-details"></div>
+                </div>
+            </div>
+
+            <!-- View: Providers -->
+            <div class="view" id="view-providers">
+                <div style="padding: 32px; max-width: 640px; margin: 0 auto;">
+                    <h2 style="margin-bottom: 24px;">☤ AI Providers</h2>
+                    <div id="provider-list"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Inspector Panel -->
+        <aside class="inspector collapsed" id="inspector">
+            <div class="inspector__header">
+                <div class="inspector__title">
+                    <span class="inspector__glyph" id="inspector-glyph">◬</span>
+                    <span id="inspector-name">Module</span>
+                </div>
+                <button class="inspector__close" id="inspector-close">✕</button>
+            </div>
+            <div id="inspector-body"></div>
+        </aside>
+
+    </div><!-- /shell -->
+
+</div><!-- /app -->
+
+<script src="/static/js/app.js"></script>
+<script src="/static/js/graph.js"></script>
+<script src="/static/js/chat.js"></script>
+
+</body>
+</html>
