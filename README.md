@@ -9,7 +9,7 @@
 **Dan Park** · [MagicPoint.ai](https://magicpoint.ai) · February 2026
 **Link:** [Download Paper (PDF)](https://github.com/dparksports/dparksports/raw/main/SCP%20II%20-%20Neuro-Symbolic%20Resolution.pdf)
 
-> **🚀 Want to start using it right now?** Skip the theory and go straight to the **[Getting Started Guide](GETTING_STARTED.md)** — covers setup, all features, and step-by-step usage.
+> **🚀 Want to apply SCP to your project right now?** Skip the theory and go straight to **[Apply SCP to Your Project](APPLY_SCP_TO_YOUR_PROJECT.md)** — convert your codebase, generate AI prompts, and verify code in minutes.
 
 ---
 
