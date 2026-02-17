@@ -7,7 +7,7 @@
 > A constraint-based architecture that reduces AI code regression from **14.3% to <0.1%** by replacing ad-hoc prompting with structured, contract-scoped context and deterministic verification.
 
 **Dan Park** · [MagicPoint.ai](https://magicpoint.ai) · February 2026
-**Link:** [Download Paper (PDF)](https://github.com/dparksports/dparksports/blob/main/spatial_constraint_protocol-draft-expanded.pdf)
+**Link:** [Download Paper (PDF)](https://github.com/dparksports/dparksports/raw/main/SCP%20II%20-%20Neuro-Symbolic%20Resolution.pdf)
 
 ---
 

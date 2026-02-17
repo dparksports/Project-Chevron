@@ -1,0 +1,4 @@
+# Nexus session data
+.nexus_session/
+__pycache__/
+*.pyc

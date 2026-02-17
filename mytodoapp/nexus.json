@@ -1,0 +1,117 @@
+{
+  "name": "mytodoapp — Todo Application",
+  "modules": [
+    {
+      "name": "TodoStore",
+      "description": "In-memory store for todo items. Pure data layer.",
+      "methods": [
+        {
+          "name": "add_todo",
+          "inputs": [
+            "text: str"
+          ],
+          "output": "Todo",
+          "glyph": "◬",
+          "constraint": "Origin — creates a new todo item"
+        },
+        {
+          "name": "get_todo",
+          "inputs": [
+            "todo_id: int"
+          ],
+          "output": "Todo | None",
+          "glyph": "Ө",
+          "constraint": "Filter — returns todo by ID or None"
+        },
+        {
+          "name": "list_todos",
+          "inputs": [
+            "filter: str"
+          ],
+          "output": "list[Todo]",
+          "glyph": "Ө",
+          "constraint": "Filter — returns todos matching filter (all/active/done)"
+        },
+        {
+          "name": "toggle_todo",
+          "inputs": [
+            "todo_id: int"
+          ],
+          "output": "Todo",
+          "glyph": "☾",
+          "constraint": "Fold — toggles completion state"
+        },
+        {
+          "name": "delete_todo",
+          "inputs": [
+            "todo_id: int"
+          ],
+          "output": "bool",
+          "glyph": "☾",
+          "constraint": "Fold — removes a todo item"
+        }
+      ],
+      "allowed_dependencies": [],
+      "constraints": [
+        "Must not contain any UI or HTTP logic",
+        "Must not make network requests",
+        "Data stored in-memory (dict keyed by auto-incrementing int ID)",
+        "Thread-safe if accessed concurrently"
+      ]
+    },
+    {
+      "name": "TodoAPI",
+      "description": "REST API layer. Routes HTTP requests to TodoStore.",
+      "methods": [
+        {
+          "name": "handle_request",
+          "inputs": [
+            "method: str",
+            "path: str",
+            "body: dict"
+          ],
+          "output": "Response",
+          "glyph": "☤",
+          "constraint": "Weaves HTTP request into response via TodoStore"
+        }
+      ],
+      "allowed_dependencies": [
+        "TodoStore"
+      ],
+      "constraints": [
+        "Must validate all input before passing to TodoStore",
+        "Must return proper HTTP status codes (200, 201, 400, 404)",
+        "Must not access storage directly — delegate to TodoStore",
+        "Must not import any web framework (pure stdlib)"
+      ]
+    },
+    {
+      "name": "TodoLogger",
+      "description": "Logs all operations. Pure observation — never modifies data.",
+      "methods": [
+        {
+          "name": "log_action",
+          "inputs": [
+            "action: str",
+            "details: dict"
+          ],
+          "output": "None",
+          "glyph": "𓂀",
+          "constraint": "Witnesses action — logs without modifying state"
+        }
+      ],
+      "allowed_dependencies": [],
+      "constraints": [
+        "Must NEVER modify todo data or control flow",
+        "Must NEVER raise exceptions that halt the pipeline",
+        "Safe to remove entirely without affecting correctness",
+        "Output: structured JSON lines to stdout"
+      ]
+    }
+  ],
+  "global_constraints": [
+    "No global mutable state between modules",
+    "All inter-module communication through declared interfaces only",
+    "TodoStore is the single source of truth for all data"
+  ]
+}
