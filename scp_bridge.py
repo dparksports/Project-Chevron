@@ -1,11 +1,16 @@
 """
-SCP Bridge — Chevron → AI Agent Interface
-==========================================
+SCP Bridge — Chevron → AI Agent Interface (High-Density Semantic Prompting)
+===========================================================================
 Translates Chevron architecture specifications into constrained
 system prompts for AI agents (Gemini, GPT, Claude, etc.).
 
-This is the practical bridge between SCP theory and real-world
-AI-assisted software engineering.
+Mechanism:
+    SCP uses High-Density Semantic Prompting. The glyphs serve as
+    high-information-density tokens in the prompt, not as direct latent
+    space coordinates. The AI reads glyph definitions as text and follows
+    the constraints via in-context learning. This is prompt engineering
+    with formally structured, contract-scoped context — not direct
+    weight manipulation or embedding injection.
 
 Usage:
     # Define your architecture in a .chevron spec
@@ -26,6 +31,7 @@ from typing import Any
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from chevron.glyphs import GLYPH_REGISTRY, GlyphType
+from chevron.code_verifier import CodeVerifier, CodeViolation, SeverityLevel
 
 
 # ─────────────────────────────────────────────────────────────
@@ -170,10 +176,15 @@ TEMPLATES = {
 
 class SCPBridge:
     """
+    High-Density Semantic Prompting bridge.
+
     Translates an SCP architecture specification into AI-constraining
-    system prompts. This is the practical implementation of the paper's
-    core thesis: compress 128K tokens of context into ~1,200 atomic vectors
-    by expressing architecture as Chevron primitives.
+    system prompts. Compresses architectural context by expressing
+    module contracts as dense Chevron primitives (glyphs) rather than
+    verbose natural language descriptions.
+
+    The glyphs are read by the AI as in-context instructions — this is
+    structured prompt engineering, not direct latent space manipulation.
 
     Usage:
         bridge = SCPBridge.from_template("todo_app")
@@ -183,10 +194,14 @@ class SCPBridge:
 
         # Feed this to Gemini / GPT / Claude as the system message
         # The AI will generate code constrained by the SCP spec
+
+        # Verify generated code deterministically (no AI self-check)
+        violations = bridge.verify_generated_code("TodoStore", code)
     """
 
     def __init__(self, spec: ArchitectureSpec):
         self.spec = spec
+        self._code_verifier = CodeVerifier()
 
     @classmethod
     def from_template(cls, template_name: str) -> "SCPBridge":
@@ -372,6 +387,112 @@ Output ONLY the Python test file content. No markdown fences, no explanation.
 Start with the imports, then the test classes/functions.
 Use descriptive test names that reference the SCP contract.
 """
+
+    def verify_generated_code(self, module_name: str, code: str,
+                               extra_allowed: list[str] | None = None) -> list[CodeViolation]:
+        """Deterministically verify generated code against the SCP contract.
+
+        This is the formal Weaver function W(G). Unlike the AI verification
+        prompt (generate_verification_prompt), this uses Python's ast module
+        to perform deterministic static analysis.
+
+        Run this BEFORE (or alongside) the AI verification prompt.
+
+        Args:
+            module_name: The SCP module the code implements.
+            code: The generated Python source code.
+            extra_allowed: Additional module names to treat as allowed imports.
+
+        Returns:
+            List of CodeViolation instances. Empty = W(G) = 0 (passes).
+        """
+        module = self._find_module(module_name)
+        if module is None:
+            raise ValueError(f"Module '{module_name}' not found in spec '{self.spec.name}'")
+
+        if extra_allowed:
+            verifier = CodeVerifier(extra_allowed_modules=extra_allowed)
+        else:
+            verifier = self._code_verifier
+
+        return verifier.verify(code, module)
+
+    def generate_structured_schema(self, module_name: str) -> dict:
+        """Generate a JSON schema that constrains the AI's output structure.
+
+        When used with Gemini's response_schema, this provides grammar-level
+        guarantees on output structure — the closest practical approximation
+        to "direct latent space mapping" available in production APIs.
+
+        Usage:
+            schema = bridge.generate_structured_schema("TodoStore")
+            # Pass to Gemini as:
+            #   generation_config=genai.GenerationConfig(
+            #       response_mime_type="application/json",
+            #       response_schema=schema
+            #   )
+        """
+        module = self._find_module(module_name)
+        if module is None:
+            raise ValueError(f"Module '{module_name}' not found")
+
+        # Build method schemas
+        method_schemas = {}
+        for m in module.methods:
+            param_props = {}
+            for inp in m.inputs:
+                name = inp.split(":")[0].strip()
+                type_hint = inp.split(":")[1].strip() if ":" in inp else "Any"
+                param_props[name] = {
+                    "type": "string",
+                    "description": f"Parameter type: {type_hint}"
+                }
+
+            method_schemas[m.name] = {
+                "type": "object",
+                "properties": {
+                    "docstring": {
+                        "type": "string",
+                        "description": f"Docstring referencing glyph {m.glyph}: {m.constraint}"
+                    },
+                    "parameters": {
+                        "type": "object",
+                        "properties": param_props,
+                        "description": f"Method parameters"
+                    },
+                    "return_type": {
+                        "type": "string",
+                        "description": f"Return type: {m.output}"
+                    },
+                    "body": {
+                        "type": "string",
+                        "description": "The method implementation code"
+                    }
+                },
+                "required": ["docstring", "body", "return_type"]
+            }
+
+        return {
+            "type": "object",
+            "properties": {
+                "module_name": {
+                    "type": "string",
+                    "enum": [module.name],
+                    "description": f"Must be '{module.name}'"
+                },
+                "imports": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": f"Allowed imports. Project deps: {module.allowed_dependencies or ['(none)']}"
+                },
+                "methods": {
+                    "type": "object",
+                    "properties": method_schemas,
+                    "required": [m.name for m in module.methods]
+                }
+            },
+            "required": ["module_name", "imports", "methods"]
+        }
 
     def generate_full_workspace(self, language: str = "python") -> str:
 

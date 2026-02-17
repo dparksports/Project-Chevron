@@ -2,9 +2,9 @@
 
 **Spatial Constraint Protocol (SCP) — Reference Implementation**
 
-*Escaping the Foggy Boundary via Direct Latent Space Mapping*
+*High-Density Semantic Prompting for AI Code Generation*
 
-> A neuro-symbolic architecture that reduces AI code regression from **14.3% to <0.1%** by replacing probabilistic token prediction with deterministic latent vector geometry.
+> A constraint-based architecture that reduces AI code regression from **14.3% to <0.1%** by replacing ad-hoc prompting with structured, contract-scoped context and deterministic verification.
 
 **Dan Park** · [MagicPoint.ai](https://magicpoint.ai) · February 2026
 **Link:** [Download Paper (PDF)](https://github.com/dparksports/dparksports/blob/main/spatial_constraint_protocol-draft-expanded.pdf)
@@ -45,7 +45,9 @@ The Transformer's core attention mechanism is:
 Attention(Q,K,V) = softmax(QKᵀ / √dₖ) · V
 ```
 
-The softmax function normalizes attention weights to sum to 1. As the number of keys increases, the probability mass spreads thinner across more candidates, reducing the model's ability to precisely locate relevant information. This is not a bug — it is the fundamental thermodynamics of attention.
+The softmax function normalizes attention weights to sum to 1. As the number of keys increases, the probability mass spreads thinner across more candidates, reducing the model's ability to precisely locate relevant information. This is not a bug — it is the fundamental information theory of attention: as context grows, **Shannon entropy** of the attention distribution increases, degrading signal-to-noise ratio.
+
+> **⚠️ Terminology note:** We use "entropy" throughout this paper in the **Shannon / information-theoretic sense** — a measure of uncertainty in probability distributions (H = -Σ pᵢ log pᵢ). This is *not* physical thermodynamic entropy (Boltzmann/Gibbs). The analogy is useful because both describe systems where "spreading probability mass" degrades precision, but there is no claim of physical law equivalence.
 
 ### The Foggy Boundary
 
@@ -78,16 +80,17 @@ At this point, **feature velocity drops to zero**. Every commit introduces new b
 
 ## The Solution: Spatial Constraint Protocol
 
-SCP makes a paradigm shift: **stop predicting the next token, and start locating the correct architectural state in vector geometry.**
+SCP makes a paradigm shift: **stop dumping noisy context, and start constraining the AI with dense, contract-scoped prompts.**
 
-Instead of feeding 128,000 noisy tokens through attention, SCP maps logical primitives directly to precise latent space coordinates using a bijective function:
+Instead of feeding 128,000 noisy tokens through attention, SCP expresses architectural constraints using high-information-density glyphs, reducing the context to ~1,200 tokens:
 
 ```
-f : ℒ → V_L
-∀ l ∈ ℒ, ∃! v ∈ V_L : f(l) = v
+f : Glyph Spec → Constrained Prompt
 ```
 
-Every Uiua primitive maps to **exactly one** vector. No ambiguity. No synonyms. No noise. The mapping is a **bijective singleton** — deterministic and invertible.
+Every Chevron primitive maps to a precise, unambiguous instruction. The AI reads these as structured in-context constraints and follows them via standard language model inference.
+
+> **⚠️ Mechanism clarity:** SCP is **High-Density Semantic Prompting** — not direct weight manipulation or embedding injection. The glyphs serve as high-information-density tokens in the prompt. The AI interprets them as text-level instructions through in-context learning. The "bijective mapping" is between *glyph semantics and contract constraints*, not between symbols and latent space coordinates. This is structured prompt engineering with formally verifiable contracts.
 
 ### Why This Works
 
@@ -101,13 +104,13 @@ Every Uiua primitive maps to **exactly one** vector. No ambiguity. No synonyms. 
 
 ### Information Completeness
 
-Via Semantic Rate-Distortion Theory (Bao & Barron, 2024), we prove that Uiua compression achieves **zero semantic distortion**:
+Via Semantic Rate-Distortion Theory (Bao & Barron, 2024), we argue that Chevron's glyph compression achieves **near-zero semantic distortion** over the architectural constraint space:
 
 ```
 R(D) = min I(X; X̂)  s.t.  E[d(X, X̂)] ≤ D
 ```
 
-Since each Uiua primitive bijectively encodes its semantic content, the distortion `D = 0` is achievable at rate `R(0) = H(X)`. The compression is **lossless over the architectural constraint space**.
+Since each Chevron primitive encodes a single, unambiguous architectural constraint, redundancy and ambiguity are minimized. The compression is **lossless over the constraint space** — architectural intent is preserved even though natural language verbosity is removed.
 
 ---
 
@@ -203,16 +206,22 @@ chevron/
 ├── repl.py                        # Interactive REPL
 ├── run.py                         # File runner (execute .chevron files)
 ├── chevron/                       # The interpreter
-│   ├── __init__.py                # Package exports
-│   ├── glyphs.py                  # Glyph registry — bijective singleton map
+│   ├── __init__.py                # Package exports (v0.3.0)
+│   ├── glyphs.py                  # Glyph registry
 │   ├── lexer.py                   # Tokenizer (snake_case + keywords)
 │   ├── parser.py                  # Parser (modules, specs, types, errors)
 │   ├── interpreter.py             # Executor (module scope, spec mode)
-│   └── verifier.py                # ★ Static SCP constraint verifier (6 checks)
+│   ├── verifier.py                # ★ Static SCP constraint verifier (6 checks)
+│   ├── code_verifier.py           # ★ [NEW] AST-based formal code verification
+│   ├── decorators.py              # ★ [NEW] Runtime-enforced glyph decorators
+│   └── test_generator.py          # ★ [NEW] Deterministic spec-driven test gen
 ├── templates/                     # Code generation templates
 │   └── spec_cli.py.template       # CLI scaffold for forge-generated projects
-├── tests/                         # Test suite
-│   └── test_chevron.py            # 45 tests (lexer, parser, interp, verifier)
+├── tests/                         # Test suite (89 tests)
+│   ├── test_chevron.py            # 45 tests (lexer, parser, interp, verifier)
+│   ├── test_code_verifier.py      # 16 tests (AST verification)
+│   ├── test_decorators.py         # 17 tests (runtime glyph enforcement)
+│   └── test_test_generator.py     # 11 tests (spec-driven test gen)
 └── examples/                      # Example programs
     ├── hello.chevron               # Hello World
     ├── pipeline.chevron            # Origin → Filter → Witness
@@ -398,7 +407,14 @@ When the verifier reports **W(G) = 0**, the program's glyph graph has zero const
 
 ## Language Extensions
 
-Chevron v0.2 adds modules, specs, types, and a static verifier while preserving the 5 primitive glyphs unchanged. Key additions:
+Chevron v0.3 adds formal verification, runtime decorators, and spec-driven test generation on top of the v0.2 language extensions, while preserving the 5 primitive glyphs unchanged. Key additions in v0.3:
+
+- **Formal code verification** — `CodeVerifier` uses AST analysis to deterministically check generated code (replaces AI self-verification)
+- **Runtime decorators** — `@chevron.origin`, `@chevron.filter`, `@chevron.fold`, `@chevron.witness`, `@chevron.weaver`
+- **Spec-driven test generation** — `SpecTestGenerator` produces pytest tests from contracts, not from implementation
+- **Structured output** — `generate_structured_schema()` produces JSON schemas for Gemini's `response_schema`
+
+Previous extensions (v0.2):
 
 - **Module system** — isolated scopes with `imports`, `exports`, `forbidden`, and `constraint`
 - **Spec mode** — architecture-only declarations (never executed), verifiable before any code exists
@@ -588,7 +604,7 @@ Source Code (.chevron)
 
 ### Glyph Registry (`glyphs.py`)
 
-The registry is the **bijective singleton map** — the core of SCP. Each glyph entry carries:
+The registry is the core glyph definition map. Each glyph entry carries:
 
 - **Symbol:** The Unicode character
 - **Name:** Human-readable name with lore origin
@@ -613,13 +629,14 @@ print(describe_all())
 
 ## Extended Theory
 
-### Neuro-Symbolic Integration
+### How SCP Relates to Neural Computation
 
-SCP is positioned as a **vertical integration** of symbolic and neural computation — not the traditional horizontal separation where a symbolic system sits alongside a neural one. In SCP:
+SCP works **with** the AI's language understanding, not by bypassing it. The mechanism is:
 
-- Symbolic primitives (Uiua glyphs) operate **directly within** the neural latent space
-- The mapping `f: ℒ → V_L` is not an interface between two systems — it is a single system where symbols *are* vectors
-- This achieves the "best of both worlds": the precision of symbolic reasoning with the generalization capacity of neural networks
+- Chevron glyphs are read by the AI as **structured in-context instructions** (not as latent space coordinates)
+- The dense notation reduces token count, keeping the attention mechanism below the Foggy Boundary
+- Contract-scoped prompts eliminate ambiguity, reducing the entropy of the AI's output distribution
+- This is **structured prompt engineering** — the AI follows constraints through in-context learning, which is the standard inference mechanism of language models
 
 ### Extended Fractal Independence
 
