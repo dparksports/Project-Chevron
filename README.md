@@ -9,7 +9,9 @@
 **Dan Park** · [MagicPoint.ai](https://magicpoint.ai) · February 2026
 **Link:** [Download Paper (PDF)](https://github.com/dparksports/dparksports/raw/main/SCP%20II%20-%20Neuro-Symbolic%20Resolution.pdf)
 
-> **🚀 Want to apply SCP to your project right now?** Skip the theory and go straight to **[Apply SCP to Your Project](APPLY_SCP_TO_YOUR_PROJECT.md)** — convert your codebase, generate AI prompts, and verify code in minutes.
+> **🚀 Ready to use it?**
+> - **[Nexus Guide](NEXUS_GUIDE.md)** — Visual AI IDE with dashboard, templates, and existing-project conversion *(recommended)*
+> - **[CLI Guide](CLI_GUIDE.md)** — Headless workflow using Forge + SCP Bridge directly
 
 ---
 
