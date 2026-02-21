@@ -162,7 +162,7 @@ code = response.text
 
 ### Deterministic Verification (Recommended)
 
-Uses Python's `ast` module — no AI involved, no hallucination possible:
+Uses Python's `ast` module — no AI involved, no confabulation possible:
 
 ```python
 violations = bridge.verify_generated_code("TodoStore", code)
@@ -348,4 +348,4 @@ ERROR [line 15] no_global_state: Module-level mutable assignment: 'cache' (dict)
 - [SPEC.md](SPEC.md) — Formal Chevron language specification
 - [EXTENSIONS.md](EXTENSIONS.md) — Module system, spec mode, type declarations
 - [SCP_TESTING.md](SCP_TESTING.md) — Auto-test generation details
-- [Research Paper (PDF)](https://github.com/dparksports/dparksports/raw/main/SCP%20II%20-%20Neuro-Symbolic%20Resolution.pdf) — SCP II: Neuro-Symbolic Resolution
+- [Research Paper (PDF)](https://github.com/dparksports/dparksports/raw/main/SCP%20II%20-%20Neuro-Symbolic%20Resolution.pdf) — The Partition Function Explosion: An Energy-Based Analysis of Attention Decay

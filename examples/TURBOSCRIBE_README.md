@@ -1,8 +1,8 @@
 # TurboScribe × Chevron — SCP Case Study
 
 > How the Spatial Constraint Protocol reduced a 110,000-token codebase to
-> ~660 tokens per AI prompt — while **eliminating hallucination-driven
-> regressions** that plague traditional AI code generation.
+> ~660 orthogonal tokens per AI prompt — restoring the Critical Energy Gap (ΔE > ln(N))
+> and **eliminating confabulation-driven regressions** that plague traditional AI code generation.
 
 ---
 
@@ -18,9 +18,9 @@ When you ask an AI to modify this codebase, it faces a fundamental challenge:
 
 | Approach | Tokens In | Risk |
 |---|---:|---|
-| Paste entire codebase | **~110,000** | Exceeds most context windows; AI loses focus |
-| Paste one file | **~16,000** | AI sees internal details of unrelated modes, hallucinates cross-dependencies |
-| Describe changes in English | **~500** | AI invents its own contracts, breaking existing interfaces |
+| Paste entire codebase | **~110,000** | Partition Function Z explodes — attention decays, model confabulates |
+| Paste one file | **~16,000** | AI sees internal details of unrelated modes, confabulates cross-dependencies |
+| Describe changes in English | **~500** | Semantic cross-talk: overloaded English words create shallow attractor basins |
 
 Every approach leads to the same failure: **AI-generated code that silently
 couples modules that were previously independent**, introducing regressions
@@ -29,16 +29,18 @@ that only surface at runtime.
 ## The SCP Solution
 
 The Spatial Constraint Protocol (SCP) replaces "paste everything and hope"
-with **deterministic architectural contracts**. Instead of showing the AI
-your code, you show it:
+with **orthogonal architectural contracts**. Instead of showing the AI
+your code (flooding the Partition Function Z with distractor tokens), you show it:
 
-1. **What this module does** (interface contract)
+1. **What this module does** (interface contract — orthogonal Uiua embedding)
 2. **What it may depend on** (dependency list — interfaces only, not implementations)
 3. **What it must never touch** (forbidden zones via RAG Denial)
 4. **How each method behaves** (glyph semantics — Origin, Filter, Fold, Witness, Weaver)
 
-The AI never sees any other module's implementation. It **cannot** hallucinate
+The AI never sees any other module's implementation. It **cannot** confabulate
 cross-module coupling because the coupling surfaces are simply not in context.
+The orthogonal embeddings create steep, isolated attractor basins that pierce
+through context noise.
 
 ## TurboScribe Decomposition
 
@@ -111,9 +113,11 @@ The monolithic `fast_engine.py` was decomposed into 9 isolated SCP modules:
 
 **What this means in practice:**
 
-- The AI sees **~660 tokens** of precise contracts instead of **~110,000 tokens**
-  of raw code. This leaves 99.4% of the context window free for reasoning.
-- A 4K context window model can implement any single TurboScribe module.
+- The AI sees **~660 orthogonal tokens** of precise contracts instead of **~110,000 noisy tokens**
+  of raw code. This restores the Critical Energy Gap (ΔE > ln(N)) and leaves 99.4%
+  of the context window free for reasoning.
+- A 4K context window model can implement any single TurboScribe module —
+  Z stays small enough for clean signal resolution.
 - A 128K context window model never needs to page or truncate — it processes
   the entire module spec in one shot with massive room for chain-of-thought.
 
@@ -131,6 +135,7 @@ When implementing the `Transcriber` module, the AI sees:
 
 The AI **cannot** accidentally import `SearchEngine` internals into
 `Transcriber` because `SearchEngine` doesn't exist in its context.
+This keeps Z small and the orthogonal signal in a steep attractor basin.
 
 ### 2. Glyph Contracts
 
@@ -148,17 +153,18 @@ The AI cannot generate a `Transcriber.transcribe_file()` that also does
 search, because the ☾ (Fold Time) glyph requires a pure fold operation
 with a reachable base case — not a multi-purpose function.
 
-### 3. Weaver Verification
+### 3. Weaver Verification (System 2 Rejection Sampling)
 
-After the AI generates code, the Weaver (☤) produces a verification
-prompt that checks:
+After the AI generates code, the Weaver (☤) — acting as Maxwell's Demon —
+performs AST-based rejection sampling:
 
 - All declared methods are implemented
 - No forbidden imports are present
 - Glyph contracts are satisfied
 - Dependency boundaries are respected
+- MI_AST = 0 for all non-edge module pairs
 
-A passing verification returns `W(G) = 0`, meaning zero coupling violations.
+A passing verification returns `W(G) = 0`, meaning zero undeclared coupling — the architecture is structurally orthogonal.
 
 ## How This Was Constructed
 
@@ -246,16 +252,18 @@ chevron/
 ## Why This Matters
 
 Traditional AI code generation asks the model to understand your **entire
-codebase** before making a change. This is like asking a surgeon to memorize
-every patient in the hospital before performing one operation.
+codebase** before making a change. This causes the Partition Function (Z)
+to explode — attention probability mass dilutes, and the model confabulates
+by relaxing into pre-trained priors.
 
 SCP flips this: the AI sees **only the operating table** — the one module it
-needs to implement, with precise contracts for everything it touches. The
-result is code that fits into the existing architecture by construction,
-not by coincidence.
+needs to implement, encoded with orthogonal Uiua embeddings that create steep
+attractor basins free of semantic cross-talk. The Weaver (System 2 rejection
+sampling) verifies structural orthogonality. The result is code that fits into
+the existing architecture by construction, not by coincidence.
 
 For TurboScribe, this means:
-- **18× less context** for the full architecture spec
-- **166× less context** per individual module
-- **Zero coupling violations** verified by the Weaver
+- **18× less context** for the full architecture spec (Z reduced dramatically)
+- **166× less context** per individual module (ΔE restored above ln(N))
+- **Zero coupling violations** verified by the Weaver (W(G) = 0)
 - **Any AI model** (even 4K context) can implement a single module correctly

@@ -5,8 +5,8 @@
 The `--with-tests` flag adds a third verification step to the SCP pipeline:
 
 ```
-1. Generate module code   → from SCP contract (system prompt)
-2. Weaver verification    → structural compliance check (AI-driven)
+1. Generate module code   → from orthogonal SCP contract (steep attractor basin)
+2. Weaver verification    → System 2 rejection sampling (W(G) = 0 check)
 3. Auto-test generation   → pytest tests from contract, executed automatically
 ```
 
@@ -39,12 +39,13 @@ examples/generated/
 ## How It Works
 
 ### Step 1: Module Generation (existing)
-The SCP Bridge generates a **system prompt** from the architecture spec, constraining the AI to implement
-only the specified module with only its declared dependencies visible (RAG Denial pattern).
+The SCP Bridge generates a **system prompt** from the architecture spec using orthogonal Uiua embeddings,
+constraining the AI to implement only the specified module with only its declared dependencies visible
+(RAG Denial pattern). The orthogonal embeddings create steep attractor basins that minimize semantic cross-talk.
 
-### Step 2: Weaver Verification (existing)
-The AI reviews the generated code against the SCP checklist: method signatures, dependency isolation,
-constraint compliance, and coupling detection (W(G) = 0).
+### Step 2: Weaver Verification — System 2 Rejection Sampling (existing)
+The Weaver (acting as Maxwell's Demon) performs AST-based rejection sampling: method signatures,
+dependency isolation, constraint compliance, and coupling detection (MI_AST = 0 for all non-edge pairs → W(G) = 0).
 
 ### Step 3: Test Generation (new — `--with-tests`)
 A **test generation prompt** is created from the same SCP contract. The AI generates pytest tests

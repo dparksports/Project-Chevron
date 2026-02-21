@@ -1,13 +1,16 @@
 # Project Chevron — Language Specification
 # Reference Implementation of the Spatial Constraint Protocol (SCP)
 # Dan Park | MagicPoint.ai | February 2026
+# Paper: "The Partition Function Explosion: An Energy-Based Analysis of Attention Decay"
 
 ## Overview
 
 Chevron is a glyph-based programming language where code is written using symbolic
 primitives inspired by the Rendlesham Forest binary code, Roswell I-beam geometric
-symbols, and Egyptian hieroglyphs. Each glyph maps to a deterministic semantic
-operation, achieving the bijective singleton property defined in the SCP paper.
+symbols, and Egyptian hieroglyphs. Each glyph maps to an **orthogonal embedding
+coordinate** — a rare, un-interfered vector that minimizes semantic cross-talk
+with common English tokens, creating steep attractor basins that resist the
+Partition Function Explosion (Z) described in the SCP paper.
 
 ## Core Primitives
 

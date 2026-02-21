@@ -54,7 +54,7 @@ end
 - **`forbidden`** — hard error if any identifier from these modules appears in the body. This is RAG Denial enforced by the parser, not by convention.
 - **`constraint`** — human-readable rules that translate directly into system prompts when used with `scp_bridge.py`.
 
-**Why it matters for SCP:** When an AI agent is given a module spec, `forbidden` guarantees it physically cannot reference code from other modules. The constraint string becomes part of the system prompt, anchoring the AI's latent space to the correct domain boundary.
+**Why it matters for SCP:** When an AI agent is given a module spec, `forbidden` guarantees it physically cannot reference code from other modules. The constraint string becomes part of the system prompt, anchoring the AI's orthogonal embedding to an isolated attractor basin — minimizing semantic cross-talk and preventing the Partition Function (Z) from drowning the signal.
 
 ---
 
@@ -96,7 +96,7 @@ When used as pipeline annotations:
 
 **Execution behavior:** Type annotations are pass-through — they don't affect runtime. But the verifier checks that every `TypeAnnotNode` in a pipeline references a declared type, warning on undeclared types.
 
-**Why it matters for SCP:** Types make pipeline contracts explicit. When `scp_bridge.py` generates a system prompt from a spec, the type declarations tell the AI *exactly* what shape of data each glyph must produce. This reduces the AI's degrees of freedom, tightening the latent space constraint.
+**Why it matters for SCP:** Types make pipeline contracts explicit. When `scp_bridge.py` generates a system prompt from a spec, the type declarations tell the AI *exactly* what shape of data each glyph must produce. This reduces the AI's degrees of freedom, steepening the attractor basin and increasing the Critical Energy Gap (ΔE) above ln(N).
 
 ---
 
@@ -155,7 +155,7 @@ Output on success:
 ✔ SCP verification passed (W(G) = 0)
 ```
 
-**Why W(G) = 0:** In SCP theory, W(G) is the Weaver deviation metric. When the verifier reports W(G) = 0, it means the program's glyph graph has zero constraint violations — every primitive is used within its contract.
+**Why W(G) = 0:** In the updated SCP framework, W(G) is the Weaver Function — a System 2 rejection sampling check that computes structural Mutual Information (MI_AST) between modules. When the verifier reports W(G) = 0, it means zero undeclared coupling exists — every primitive is used within its contract and all module pairs outside the declared dependency graph have MI_AST = 0.
 
 ---
 
@@ -211,9 +211,9 @@ Before these extensions, RAG Denial was enforced only by `scp_bridge.py` at prom
 | Ө Filter | Predicate must return boolean | Function call type checking |
 | ☤ Weaver | Merges without loss | *(structural — no new check needed)* |
 
-### Weaver Verification (W(G) = 0)
+### Weaver Verification — System 2 Rejection Sampling (W(G) = 0)
 
-> *"The deviation between specification and implementation must be zero."*
+> *"The Weaver acts as Maxwell's Demon — rejecting any generation where undeclared coupling exists."*
 
 The `--verify` flag automates this check. Before, you had to manually inspect glyph usage. Now:
 

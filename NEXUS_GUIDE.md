@@ -2,7 +2,7 @@
 
 > **Build software one module at a time, with AI that never loses context.**
 
-Nexus wraps the Spatial Constraint Protocol into a working AI development environment. Instead of dumping your entire codebase into a prompt, it decomposes your architecture into isolated modules and generates code for each one independently — with entropy scoring, contract verification, and zero cross-module regression.
+Nexus wraps the Spatial Constraint Protocol into a working AI development environment. Instead of dumping your entire codebase into a prompt (causing the Partition Function Z to explode and attention to decay), it decomposes your architecture into isolated modules and generates code for each one independently — using orthogonal Uiua embeddings that create steep attractor basins, with System 2 rejection sampling (The Weaver) and zero cross-module confabulation.
 
 ---
 
@@ -163,9 +163,9 @@ python -m nexus.cli providers
 
 | Mechanism | What It Does |
 |-----------|-------------|
-| **RAG Denial** | AI sees ONLY the active module + dependency interfaces. Everything else is invisible. |
-| **Entropy Scoring** | Every context item is scored 0–1 by relevance. Low-signal items are pruned. |
-| **Contract Freezing** | After verification, a module's interface is frozen. Other modules see the frozen snapshot. |
+| **RAG Denial** | AI sees ONLY the active module + dependency interfaces. Everything else is invisible — preventing semantic cross-talk. |
+| **Entropy Scoring** | Every context item is scored 0–1 by relevance. Low-signal items are pruned, reducing Z. |
+| **Contract Freezing** | After Weaver verification (W(G) = 0), a module's interface is frozen. Other modules see the frozen snapshot. |
 
 The AI sees **~700 tokens per module** instead of ~110,000 for the full codebase. **157× compression.**
 
@@ -173,7 +173,8 @@ The AI sees **~700 tokens per module** instead of ~110,000 for the full codebase
 
 - Each module has a **contract** (methods, types, constraints)
 - When you generate module B that depends on module A, the AI only sees A's **frozen contract** — not its full source code
-- This prevents **context entropy** (the AI getting confused by too much irrelevant code)
+- This prevents the **Partition Function Explosion** (the AI's attention drowning in distractor tokens from irrelevant code)
+- Orthogonal embeddings create steep attractor basins that resist confabulation
 - Build leaves first, then dependents
 
 ---
@@ -302,4 +303,4 @@ python tests/test_conductor.py           # 15 tests — planner, executor, verif
 - [CLI & Forge Guide](CLI_GUIDE.md) — Headless workflow using Forge + SCP Bridge directly
 - [Dashboard Guide](DASHBOARD_README.md) — Detailed dashboard documentation
 - [README.md](README.md) — Full SCP theory and research background
-- [Research Paper (PDF)](https://github.com/dparksports/dparksports/raw/main/SCP%20II%20-%20Neuro-Symbolic%20Resolution.pdf) — SCP II: Neuro-Symbolic Resolution
+- [Research Paper (PDF)](https://github.com/dparksports/dparksports/raw/main/SCP%20II%20-%20Neuro-Symbolic%20Resolution.pdf) — The Partition Function Explosion: An Energy-Based Analysis of Attention Decay

@@ -95,7 +95,7 @@ Make the CLI support a --verbose flag
 The chat streams **real-time progress**:
 1. **Planning** — Which modules will be generated
 2. **Generating** — Code appears as it's written (node pulses amber)
-3. **Verification** — SCP Weaver checks contracts (pass ✔ / fail ✘)
+3. **Verification** — Weaver (System 2 rejection sampling) checks contracts (W(G)=0 ✔ / reject ✘)
 4. **Health Update** — Session metrics refresh
 
 ### 5. Header Navigation
@@ -177,15 +177,16 @@ my-todo-app/
 
 ### Why Bottom-Up?
 
-Nexus uses **SCP (Structured Context Protocol)** which means:
+Nexus uses **SCP (Spatial Constraint Protocol)** which means:
 - Each module has a **contract** (methods, types, constraints)
 - When you generate module B that depends on module A, the AI only sees A's **frozen contract** — not its full source code
-- This prevents **context entropy** (the AI getting confused by too much irrelevant code)
+- This prevents the **Partition Function Explosion** (the AI's attention drowning in distractor tokens — causing confabulation)
+- Orthogonal Uiua embeddings create steep attractor basins free of semantic cross-talk
 - Build leaves first, then dependents
 
 ### What is RAG Denial?
 
-Modules have a **forbidden** list. If TodoStore is forbidden from accessing `TodoCLI`, the AI literally cannot see TodoCLI's code during generation. This enforces clean architecture by construction.
+Modules have a **forbidden** list. If TodoStore is forbidden from accessing `TodoCLI`, the AI literally cannot see TodoCLI's code during generation. This enforces clean architecture by construction — the signal remains in an isolated attractor basin, and the Partition Function Z stays small.
 
 ### What Happens on Failure?
 

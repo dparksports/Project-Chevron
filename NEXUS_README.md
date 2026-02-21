@@ -2,7 +2,7 @@
 
 **Build software one module at a time, with AI that never loses context.**
 
-> Nexus turns the [Spatial Constraint Protocol](README.md) into a working AI development environment. Instead of dumping your entire codebase into an AI's context window, Nexus decomposes your architecture into isolated modules and generates code for each one independently — with entropy scoring, contract verification, and zero cross-module regression.
+> Nexus turns the [Spatial Constraint Protocol](README.md) into a working AI development environment. Instead of dumping your entire codebase into an AI's context window (causing the Partition Function Z to explode), Nexus decomposes your architecture into isolated modules and generates code for each one independently — using orthogonal embeddings that create steep attractor basins, System 2 rejection sampling (The Weaver), and zero cross-module confabulation.
 
 ---
 
@@ -16,17 +16,17 @@ Turn 10:  "Now add logout"         → ✘ Breaks auth state
 Turn 20:  "Fix the regression"     → ✘✘ Introduces 2 new bugs
 ```
 
-**The root cause:** The AI's context window fills with noise. Attention spreads thin. Signal degrades. Regressions cascade.
+**The root cause:** The AI's context window fills with distractor tokens. The Partition Function (Z) explodes. Attention probability mass dilutes. The signal drowns in noise. The model confabulates — relaxing into pre-trained priors instead of following your constraints. Regressions cascade.
 
 **Nexus fixes this** with three mechanisms:
 
 | Mechanism | What It Does |
 |-----------|-------------|
-| **RAG Denial** | AI sees ONLY the active module + dependency interfaces. Everything else is invisible. |
-| **Entropy Scoring** | Every context item is scored 0–1 by relevance. Low-signal items are pruned. |
-| **Contract Freezing** | After verification, a module's interface is frozen. Other modules see the frozen snapshot. |
+| **RAG Denial** | AI sees ONLY the active module + dependency interfaces. Everything else is invisible — preventing semantic cross-talk. |
+| **Entropy Scoring** | Every context item is scored 0–1 by relevance. Low-signal items are pruned, reducing Z. |
+| **Contract Freezing** | After Weaver verification (W(G) = 0), a module's interface is frozen. Other modules see the frozen snapshot. |
 
-The AI sees ~700 tokens per module instead of ~110,000 for the full codebase. **157× compression.**
+The AI sees ~700 orthogonal tokens per module instead of ~110,000 noisy tokens for the full codebase. **157× compression — restoring the Critical Energy Gap (ΔE > ln(N)).**
 
 ---
 
@@ -303,3 +303,4 @@ chevron/
 ---
 
 *Built on [Project Chevron](README.md) — the Spatial Constraint Protocol reference implementation.*
+*Paper: [The Partition Function Explosion: An Energy-Based Analysis of Attention Decay](https://github.com/dparksports/dparksports/raw/main/SCP%20II%20-%20Neuro-Symbolic%20Resolution.pdf)*

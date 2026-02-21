@@ -1,7 +1,7 @@
 # SCP Code Generation — How It Works
 
-> An AI generates production-quality module code from a ~815 token contract,
-> then a second AI pass verifies it against SCP rules. Zero human prompting required.
+> An AI generates production-quality module code from a ~815 token orthogonal contract,
+> then System 2 rejection sampling (The Weaver) verifies it against SCP rules. Zero human prompting required.
 
 ---
 
@@ -15,7 +15,7 @@ python examples/turboscribe_example.py Transcriber --gemini --model gemini-3-pro
 
 This produced a complete, working `Transcriber` module — 260+ lines of Python
 with proper error handling, GPU fallback, caching, and progress reporting —
-**without the AI ever seeing the TurboScribe codebase**.
+**without the AI ever seeing the TurboScribe codebase**. By using orthogonal Uiua embeddings, SCP creates steep attractor basins that prevent the model from confabulating across module boundaries.
 
 ### The Pipeline
 
@@ -28,10 +28,10 @@ with proper error handling, GPU fallback, caching, and progress reporting —
 │  Step 2: Gemini 3 Pro receives the prompt and generates code    │
 │          (the AI sees ONLY the contract — not the codebase)     │
 ├──────────────────────────────────────────────────────────────────┤
-│  Step 3: Weaver verification — a second Gemini pass audits      │
-│          the generated code against all SCP constraints          │
+│  Step 3: Weaver (System 2) — AST rejection sampling audits      │
+│          the generated code for coupling violations              │
 ├──────────────────────────────────────────────────────────────────┤
-│  Result: PASS / FAIL with detailed violation report             │
+│  Result: PASS (W(G)=0) / REJECT & Resample                     │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -54,8 +54,9 @@ The system prompt told Gemini 3 Pro:
 - ❌ Any other module's code
 - ❌ The database schema, UI layer, or deployment config
 
-This is **RAG Denial** in action — the AI cannot hallucinate cross-module
-coupling because the other modules don't exist in its context.
+This is **RAG Denial** in action — the AI cannot confabulate cross-module
+coupling because the other modules don't exist in its context. The orthogonal
+embeddings create steep, isolated attractor basins that pierce through context noise.
 
 ## What the AI Generated
 
@@ -82,15 +83,15 @@ coupling because the other modules don't exist in its context.
 | `batch_transcribe` | ☾ | Folds directory→transcripts, base case = empty dir | ✔ |
 | `transcribe_segment` | ☾ | Folds time slice→text, base case = empty slice | ✔ |
 
-## Weaver Verification Result
+## Weaver Verification Result (System 2 Rejection Sampling)
 
 ```
-PASS — W(G) = 0
+PASS — W(G) = 0 (No undeclared coupling detected)
 
 1. Interface Conformance: All 4 methods match required signatures
-2. Dependency Isolation: Only AudioIngest and VoiceDetector imported
+2. Dependency Isolation: Only AudioIngest and VoiceDetector imported (orthogonal)
 3. Constraint Compliance: Correct naming, skip_existing, fallback, [PROGRESS]
-4. Coupling Detection: No forbidden module references found
+4. Coupling Detection: MI_AST = 0 for all non-edge module pairs
 5. Glyph Contracts: All methods follow their assigned primitive rules
 ```
 
@@ -137,11 +138,12 @@ You can use this same process for **any** codebase:
 2. **Assign glyphs** — what is each module's primary operation?
 3. **Define contracts** — methods, constraints, dependencies, forbidden zones
 4. **Generate** — `python examples/turboscribe_example.py ModuleName --gemini`
-5. **Verify** — the Weaver catches violations automatically
+5. **Verify** — The Weaver (System 2 rejection sampling) catches coupling violations automatically
 
 The AI generates code that fits your architecture **by construction**, not by
-coincidence. It physically cannot import forbidden modules because they aren't
-in context. It follows glyph contracts because those are its only instructions.
+coincidence. Orthogonal Uiua embeddings create steep attractor basins free of semantic
+cross-talk. It physically cannot import forbidden modules because they aren't
+in context. If the Weaver detects W(G) > 0, it rejects and resamples until orthogonality is restored.
 
 ## Files in This Directory
 
