@@ -11,51 +11,96 @@ DEFAULT_MODEL = "gemini-3-pro-preview"
 
 
 def _generate_module(bridge, module_name, model, client, output_dir=None):
-    """Generate a single module, verify with Weaver, optionally save."""
+    """Generate a single module, verify with Weaver (AST deterministic), log data, optionally save."""
     from google import genai
+    import json
+    import os
+    import time
+    
     prompt = bridge.generate_system_prompt(module_name, language="{{LANGUAGE}}")
     print(f"\n◬ ─── Sending to {model}: Implement {module_name} ───")
     print(f"   Prompt size: {len(prompt)} chars (~{len(prompt.split())} tokens)")
-    try:
-        response = client.models.generate_content(
-            model=model,
-            contents=f"Implement the {module_name} module now.",
-            config=genai.types.GenerateContentConfig(
-                system_instruction=prompt, temperature=0.1),
-        )
-        code = response.text
-        print(f"☤ ─── Weaver Verification: {module_name} ───")
-        verify_prompt = bridge.generate_verification_prompt(module_name, code)
-        verify = client.models.generate_content(
-            model=model,
-            contents=verify_prompt,
-            config=genai.types.GenerateContentConfig(temperature=0.0),
-        )
-        verification = verify.text
-        v_line = verification.upper().split("\n")[0] if verification else ""
-        passed = "PASS" in v_line
-        print(f"   {'✔ PASS' if passed else '✘ FAIL'}")
-        if output_dir:
-            os.makedirs(output_dir, exist_ok=True)
-            code_file = os.path.join(output_dir, f"{module_name.lower()}.py")
+    
+    max_retries = 5
+    dataset_file = "chevron_ebm_dataset.jsonl"
+    
+    # We want higher temperature on the first pass if fuzzing, but typically 0.1 for normal use
+    temp = float(os.environ.get("CHEVRON_TEMP", "0.1"))
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            time.sleep(1)
+            response = client.models.generate_content(
+                model=model,
+                contents=f"Implement the {module_name} module now.",
+                config=genai.types.GenerateContentConfig(
+                    system_instruction=prompt, temperature=temp),
+            )
+            code = response.text
+            
             clean_code = code
             if "```python" in code:
                 match = _re.search(r'```python\s*\n(.*?)```', code, _re.DOTALL)
                 if match:
                     clean_code = match.group(1)
-            with open(code_file, "w", encoding="utf-8") as f:
-                f.write(clean_code)
-            out_file = os.path.join(output_dir, f"{module_name.lower()}_output.txt")
-            with open(out_file, "w", encoding="utf-8") as f:
-                f.write(f"◬ SCP Generated: {module_name}\nModel: {model}\n")
-                f.write("=" * 60 + "\n\n" + code)
-                f.write("\n\n" + "=" * 60 + "\n☤ Weaver Verification\n" + "=" * 60 + "\n\n")
-                f.write(verification)
-            print(f"   Saved: {code_file}")
-        return code, verification
-    except Exception as e:
-        print(f"   ⚠ Error generating {module_name}: {e}")
-        return None
+            elif "```" in code:
+                match = _re.search(r'```\s*\n(.*?)```', code, _re.DOTALL)
+                if match:
+                    clean_code = match.group(1)
+            
+            print(f"☤ ─── AST Weaver Verification: {module_name} (Attempt {attempt}/{max_retries}) ───")
+            
+            # Deterministic AST Verification (W(G))
+            violations = bridge.verify_generated_code(module_name, clean_code)
+            
+            # Log to dataset (TT if violations is empty, TF if violations exist)
+            weaver_error_val = " | ".join([f"{v.check}: {v.message}" for v in violations]) if violations else None
+            log_entry = {
+                "scp_prompt": prompt,
+                "generated_code": clean_code,
+                "weaver_error": weaver_error_val
+            }
+            with open(dataset_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(log_entry) + "\n")
+            
+            if not violations:
+                print(f"   ✔ PASS (Deterministic W(G) = 0)")
+                
+                # Also run the LLM verification for log output equivalence
+                verify_prompt = bridge.generate_verification_prompt(module_name, code)
+                time.sleep(1)
+                verify = client.models.generate_content(
+                    model=model,
+                    contents=verify_prompt,
+                    config=genai.types.GenerateContentConfig(temperature=0.0),
+                )
+                verification = verify.text
+                
+                if output_dir:
+                    os.makedirs(output_dir, exist_ok=True)
+                    code_file = os.path.join(output_dir, f"{module_name.lower()}.py")
+                    with open(code_file, "w", encoding="utf-8") as f:
+                        f.write(clean_code)
+                    out_file = os.path.join(output_dir, f"{module_name.lower()}_output.txt")
+                    with open(out_file, "w", encoding="utf-8") as f:
+                        f.write(f"◬ SCP Generated: {module_name}\nModel: {model}\n")
+                        f.write("=" * 60 + "\n\n" + code)
+                        f.write("\n\n" + "=" * 60 + "\n☤ Weaver Verification\n" + "=" * 60 + "\n\n")
+                        f.write(verification)
+                    print(f"   Saved: {code_file}")
+                return clean_code, verification
+            else:
+                print(f"   ✘ FAIL (Violations found)")
+                for v in violations:
+                    print(v)
+                if attempt == max_retries:
+                    print(f"   ⚠ Failed after {max_retries} attempts.")
+                    return None, "FAIL: " + weaver_error_val
+                    
+        except Exception as e:
+            print(f"   ⚠ Error generating {module_name} (Attempt {attempt}): {e}")
+            if attempt == max_retries:
+                return None
 
 
 def _generate_tests(bridge, module_name, code, model, client, output_dir):
@@ -66,6 +111,8 @@ def _generate_tests(bridge, module_name, code, model, client, output_dir):
     print(f"   Prompt size: {len(test_prompt)} chars (~{len(test_prompt.split())} tokens)")
     try:
         from google import genai
+        import time
+        time.sleep(1)
         response = client.models.generate_content(
             model=model,
             contents=f"Generate pytest tests for the {module_name} module now.",

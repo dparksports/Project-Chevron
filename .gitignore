@@ -28,3 +28,9 @@ desktop.ini
 # Temp
 *.tmp
 *.log
+
+# SCP Generated Artifacts
+*_scp.py
+*_architecture.chevron
+*_decomposition.json
+*.jsonl
