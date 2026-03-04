@@ -7,7 +7,7 @@
 > A neuro-symbolic architecture that reduces AI code regression from **14.3% to <0.1%** by replacing noisy tokenization with **orthogonal embedding mapping** using Uiua primitives. SCP minimizes semantic cross-talk, creates steep isolated attractor basins that pierce through context noise, and pairs them with System 2 AST rejection sampling (The Weaver) to transform the LLM from a probabilistic confabulator into a reliable architectural engine.
 
 **Dan Park** · [MagicPoint.ai](https://magicpoint.ai) · February 2026
-**Link:** [Download Paper (PDF)](https://github.com/dparksports/dparksports/raw/main/SCP%20II%20-%20Neuro-Symbolic%20Resolution.pdf)
+**Link:** [Download Paper (PDF)](https://github.com/dparksports/dparksports/raw/main/The%20Partition%20Function%20Explosion.pdf)
 
 > **🚀 Ready to use it?**
 > - **[Nexus Guide](NEXUS_GUIDE.md)** — Visual AI IDE with dashboard, templates, and existing-project conversion *(recommended)*
