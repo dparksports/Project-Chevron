@@ -67,14 +67,14 @@ SKIP_DIRS = {
     ".tox", "eggs", "*.egg-info", ".idea", ".vscode", "bin", "obj",
 }
 
-# Glyph descriptions for the decomposition prompt
-GLYPH_GUIDE = """
-The 5 Chevron SCP Glyphs — assign one primary glyph per module:
-  ◬ Origin       — Entry point / data source. Appears once per scope. (e.g., file loader, API server init)
-  Ө Filter       — Pass/reject gate. Pure predicate. (e.g., search, validation, authentication check)
-  ☾ Fold Time    — Recursive/iterative processing with base case. (e.g., batch processing, parsing, compilation)
-  ☤ Weaver       — Merges multiple streams into one. (e.g., LLM + prompt → response, template rendering)
-  𓂀 Witness      — Pure observation. Zero side effects. (e.g., logging, metrics, progress reporting)
+# Topo-Categorical operator descriptions for the decomposition prompt
+TOPO_CATEGORICAL_GUIDE = """
+The 5 Topo-Categorical Operators — assign relational constraints between modules:
+  Hom(A,B) ≅ 0   — Null Morphism: Strict isolation. A must never reference B.
+  A ↦ B           — Morphism: Directed data flow. B depends on A, not reverse.
+  A ⊕ B           — Direct Sum: Decoupled coexistence. No shared state.
+  A ⊗ B           — Tensor Product: State entanglement. Tightly coupled.
+  ∂A ∩ ∂B = ∅     — Topological Boundary: Interface encapsulation. Abstract interface only.
 """
 
 # ─────────────────────────────────────────────────────────────
@@ -270,7 +270,7 @@ Analyze this {scan.language} codebase and decompose it into isolated SCP modules
 
 {files_section}
 
-{GLYPH_GUIDE}
+{TOPO_CATEGORICAL_GUIDE}
 
 ## Output Format
 
@@ -282,15 +282,15 @@ Respond with a JSON object (and ONLY the JSON, no markdown fences) with this exa
     {{
       "name": "ModuleName",
       "description": "What this module does (1-2 sentences)",
-      "primary_glyph": "◬",
-      "glyph_name": "Origin",
+      "primary_operator": "↦",
+      "operator_name": "Morphism",
       "source_files": ["relative/path/to/file.py"],
       "methods": [
         {{
           "name": "method_name",
           "inputs": ["param1: str", "param2: int"],
           "output": "ReturnType",
-          "glyph": "◬",
+          "operator": "↦",
           "description": "What this method does"
         }}
       ],
@@ -311,7 +311,7 @@ Respond with a JSON object (and ONLY the JSON, no markdown fences) with this exa
 
 ## Rules for Decomposition
 
-1. **Each module gets ONE primary glyph** that defines its core operation
+1. **Each module relationship gets ONE primary operator** that defines its constraint
 2. **Exactly one ◬ Origin module** — the entry point for the whole system
 3. **Dependencies must form a DAG** — no circular dependencies
 4. **Forbidden zones must be explicit** — if Module A shouldn't touch Module C, say so
@@ -411,8 +411,8 @@ def generate_spec_file(decomp: dict, output_dir: str, language: str) -> str:
     ]
 
     for mod in modules:
-        glyph_char = mod.get("primary_glyph", "☤")
-        lines.append(f'        # ─── {glyph_char} {mod["name"]} ───')
+        op_char = mod.get("primary_operator", "↦")
+        lines.append(f'        # ─── {op_char} {mod["name"]} ───')
         lines.append(f'        ModuleSpec(')
         lines.append(f'            name="{mod["name"]}",')
         desc = mod.get("description", "").replace('"', '\\"')
@@ -421,13 +421,13 @@ def generate_spec_file(decomp: dict, output_dir: str, language: str) -> str:
 
         for method in mod.get("methods", []):
             inputs_str = json.dumps(method.get("inputs", []))
-            m_glyph = method.get("glyph", glyph_char)
+            m_op = method.get("operator", op_char)
             m_desc = method.get("description", "").replace('"', '\\"')
             lines.append(f'                InterfaceMethod(')
             lines.append(f'                    "{method["name"]}",')
             lines.append(f'                    {inputs_str},')
             lines.append(f'                    "{method.get("output", "Any")}",')
-            lines.append(f'                    "{m_glyph}",')
+            lines.append(f'                    "{m_op}",')
             lines.append(f'                    "{m_desc}",')
             lines.append(f'                ),')
 
@@ -509,8 +509,8 @@ def generate_chevron_spec(decomp: dict, output_dir: str) -> str:
 
     # Spec blocks for each module
     for mod in modules:
-        glyph_char = mod.get("primary_glyph", "☤")
-        lines.append(f"# {glyph_char} {mod['name']}")
+        op_char = mod.get("primary_operator", "↦")
+        lines.append(f"# {op_char} {mod['name']}")
         lines.append(f"spec {mod['name']}")
 
         deps = mod.get("allowed_dependencies", [])
@@ -541,7 +541,7 @@ def generate_chevron_spec(decomp: dict, output_dir: str) -> str:
     # Single pipeline with one Origin
     origin_mod = None
     for mod in modules:
-        if mod.get("primary_glyph") == "◬":
+        if mod.get("primary_operator") == "↦":
             origin_mod = mod
             break
 
@@ -549,9 +549,9 @@ def generate_chevron_spec(decomp: dict, output_dir: str) -> str:
         # Build a simple pipeline from the DAG
         pipeline_parts = [f'◬ "{project_name}"']
         for mod in modules:
-            glyph = mod.get("primary_glyph", "☤")
-            if glyph != "◬":
-                pipeline_parts.append(f'{glyph} {mod["name"]}')
+            op = mod.get("primary_operator", "↦")
+            if op != "↦":
+                pipeline_parts.append(f'{op} {mod["name"]}')
         pipeline_parts.append("𓂀")
         lines.append("# Pipeline")
         lines.append(" → ".join(pipeline_parts))
@@ -607,13 +607,13 @@ def print_decomposition_report(decomp: dict):
     print(line)
     print()
 
-    print(f"{'Module':<22} {'Glyph':^7} {'Methods':>8} {'Dependencies'}")
+    print(f"{'Module':<22} {'Operator':^7} {'Methods':>8} {'Dependencies'}")
     print(line)
     for mod in modules:
-        glyph = mod.get("primary_glyph", "?")
+        op = mod.get("primary_operator", "?")
         methods = len(mod.get("methods", []))
         deps = ", ".join(mod.get("allowed_dependencies", [])) or "none"
-        print(f"  {mod['name']:<20} {glyph:^7} {methods:>6}   {deps}")
+        print(f"  {mod['name']:<20} {op:^7} {methods:>6}   {deps}")
     print(line)
     print()
 

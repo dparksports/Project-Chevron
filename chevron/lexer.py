@@ -1,22 +1,29 @@
 """
-Chevron Lexer
-=============
+Chevron Lexer — Non-Polysemic Topological DSL
+==============================================
 Tokenizes Chevron source code into a stream of typed tokens.
-Handles Unicode glyphs, operators, string/number literals, and identifiers.
+Handles Topo-Categorical math operators (↦, ⊕, ⊗, ∂, ∩, ∅, ≅),
+pipeline operators, string/number literals, and identifiers.
 """
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Iterator
 
-from .glyphs import GLYPH_CHARS
+from .glyphs import OPERATOR_CHARS
 
 
 class TokenType(Enum):
     """All token types in the Chevron language."""
-    # Glyphs (the 5 primitives)
-    GLYPH       = auto()
+    # Topo-Categorical operators
+    MORPHISM       = auto()   # ↦  (directed data flow)
+    DIRECT_SUM     = auto()   # ⊕  (decoupled coexistence)
+    TENSOR_PRODUCT = auto()   # ⊗  (state entanglement)
+    PARTIAL        = auto()   # ∂  (boundary operator)
+    INTERSECTION   = auto()   # ∩  (set intersection)
+    EMPTY_SET      = auto()   # ∅  (empty set)
+    ISOMORPHIC     = auto()   # ≅  (isomorphism)
 
-    # Operators
+    # Pipeline and binding operators
     PIPELINE    = auto()   # →
     BIND        = auto()   # ←
     LPAREN      = auto()   # (
@@ -59,6 +66,7 @@ class TokenType(Enum):
     KW_CONSTRAINT = auto()   # constraint
     KW_TYPE       = auto()   # type
     KW_END        = auto()   # end
+    KW_HOM        = auto()   # Hom (null morphism functor)
 
     # Special
     NEWLINE     = auto()
@@ -82,6 +90,13 @@ class Token:
 SINGLE_CHAR_TOKENS = {
     "→": TokenType.PIPELINE,
     "←": TokenType.BIND,
+    "↦": TokenType.MORPHISM,
+    "⊕": TokenType.DIRECT_SUM,
+    "⊗": TokenType.TENSOR_PRODUCT,
+    "∂": TokenType.PARTIAL,
+    "∩": TokenType.INTERSECTION,
+    "∅": TokenType.EMPTY_SET,
+    "≅": TokenType.ISOMORPHIC,
     "(": TokenType.LPAREN,
     ")": TokenType.RPAREN,
     "[": TokenType.LBRACKET,
@@ -111,6 +126,7 @@ KEYWORDS = {
     "constraint": TokenType.KW_CONSTRAINT,
     "type": TokenType.KW_TYPE,
     "end": TokenType.KW_END,
+    "Hom": TokenType.KW_HOM,
 }
 
 
@@ -281,13 +297,7 @@ class Lexer:
                 yield Token(TokenType.LTE, "<=", line, col)
                 continue
 
-            # Glyph characters
-            if ch in GLYPH_CHARS:
-                yield Token(TokenType.GLYPH, ch, self.line, self.col)
-                self._advance()
-                continue
-
-            # Single-char operators (NOT underscore — handled below)
+            # Single-char operators (includes Topo-Categorical math symbols)
             if ch in SINGLE_CHAR_TOKENS:
                 yield Token(SINGLE_CHAR_TOKENS[ch], ch, self.line, self.col)
                 self._advance()
@@ -304,7 +314,7 @@ class Lexer:
                     self._advance()
                 continue
 
-            # Identifiers and keywords
+            # Identifiers and keywords (including Hom)
             if ch is not None and ch.isalpha():
                 yield self._read_identifier()
                 continue

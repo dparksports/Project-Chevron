@@ -1,12 +1,12 @@
-# Chevron Language Extensions (v0.2)
+# Chevron Language Extensions (v2.0)
 
-> Extending the 5 glyph primitives with module isolation, type safety, and static verification — without breaking the core SCP contract.
+> Extending the core Topo-Categorical operators with module isolation, type safety, formal verification, runtime decorators, and spec-driven test generation.
 
 ## Why These Extensions Exist
 
-Chevron v0.1 proved the core thesis: **5 glyphs are sufficient to express any data pipeline**. But real-world codebases (like TurboScribe's 110K-token backend) exposed gaps that made SCP enforcement manual and error-prone:
+Chevron v1.0 proved the core thesis: **orthogonal embeddings resist the Partition Function Explosion**. But real-world codebases (like TurboScribe's 110K-token backend) exposed gaps that made HL enforcement manual and error-prone:
 
-| Problem | Example | SCP Principle at Risk |
+| Problem | Example | HL Principle at Risk |
 |---------|---------|----------------------|
 | No module boundaries | Any glyph could reference any binding | **RAG Denial** — AI sees everything |
 | No forbidden zones | A Transcriber module could import SearchEngine | **Glyph Contract** — no isolation |
@@ -14,7 +14,7 @@ Chevron v0.1 proved the core thesis: **5 glyphs are sufficient to express any da
 | No static checks | Multiple ◬ Origins went undetected | **Determinism** — undefined behavior |
 | First error stops parsing | One typo hides all other errors | **Developer experience** — slow iteration |
 
-The extensions solve each of these while preserving the 5 primitive glyphs unchanged.
+The extensions solve each of these while building on the 5 Topo-Categorical operators (`Hom≅0`, `↦`, `⊕`, `⊗`, `∂∩∅`).
 
 ---
 
@@ -54,7 +54,7 @@ end
 - **`forbidden`** — hard error if any identifier from these modules appears in the body. This is RAG Denial enforced by the parser, not by convention.
 - **`constraint`** — human-readable rules that translate directly into system prompts when used with `scp_bridge.py`.
 
-**Why it matters for SCP:** When an AI agent is given a module spec, `forbidden` guarantees it physically cannot reference code from other modules. The constraint string becomes part of the system prompt, anchoring the AI's orthogonal embedding to an isolated attractor basin — minimizing semantic cross-talk and preventing the Partition Function (Z) from drowning the signal.
+**Why it matters for HL:** When an AI agent is given a module spec, `forbidden` guarantees it physically cannot reference code from other modules. The constraint string becomes part of the system prompt, anchoring the AI's orthogonal embedding to an isolated attractor basin — minimizing semantic cross-talk and preventing the Partition Function (Z) from drowning the signal.
 
 ---
 
@@ -72,7 +72,7 @@ spec VoiceDetector
 end
 ```
 
-**Why spec mode exists:** In SCP, the architecture specification *is* the source of truth. Specs let you define the entire dependency graph, type contracts, and forbidden zones without needing any executable code. The verifier runs all static checks on specs just like modules. You can define a complete system architecture in Chevron and verify it before writing a single line of implementation code.
+**Why spec mode exists:** In HL, the architecture specification *is* the source of truth. Specs let you define the entire dependency graph, type contracts, and forbidden zones without needing any executable code. The verifier runs all static checks on specs just like modules. You can define a complete system architecture in Chevron and verify it before writing a single line of implementation code.
 
 **How to use:** `python run.py architecture.chevron --verify` validates the entire spec graph (circular deps, forbidden zones, type annotations) without executing anything.
 
@@ -96,7 +96,7 @@ When used as pipeline annotations:
 
 **Execution behavior:** Type annotations are pass-through — they don't affect runtime. But the verifier checks that every `TypeAnnotNode` in a pipeline references a declared type, warning on undeclared types.
 
-**Why it matters for SCP:** Types make pipeline contracts explicit. When `scp_bridge.py` generates a system prompt from a spec, the type declarations tell the AI *exactly* what shape of data each glyph must produce. This reduces the AI's degrees of freedom, steepening the attractor basin and increasing the Critical Energy Gap (ΔE) above ln(N).
+**Why it matters for HL:** Types make pipeline contracts explicit. When `scp_bridge.py` generates a system prompt from a spec, the type declarations tell the AI *exactly* what shape of data each operator must produce. This reduces the AI's degrees of freedom, steepening the attractor basin and increasing the Critical Energy Gap (ΔE) above ln(N).
 
 ---
 
@@ -136,13 +136,16 @@ Output:
 
 The verifier runs 6 checks on the parsed AST before execution:
 
-| Check | Glyph | Rule | Level |
-|-------|-------|------|-------|
-| Origin count | ◬ | Exactly one per scope (module or top-level) | Error |
-| Witness terminal | 𓂀 | Must be the last stage in a pipeline | Error |
-| Fold arguments | ☾ | Must have ≥2 args (predicate + transform) | Error |
+| Check | Operator | Rule | Level |
+|-------|----------|------|-------|
+| Null Morphism | Hom≅0 | A must never reference B | Error |
+| Morphism Direction | ↦ | Reverse flow (B→A) forbidden | Error |
+| Direct Sum | ⊕ | No shared state between A and B | Error |
+| Tensor Product | ⊗ | Structural coupling documented | Error |
+| Topo Boundary | ∂∩∅ | Interface-only communication | Error |
 | Forbidden deps | — | No references to forbidden modules | Error |
-| Circular deps | — | No cycles in `depends_on` graph | Error |
+| Circular deps | — | No cycles in `depends_on` graph (DAG) | Error |
+| Dependency integrity | — | `depends_on` targets must exist | Warning |
 | Type annotations | — | Warn on undeclared types | Warning |
 
 Run with:
@@ -152,10 +155,10 @@ python run.py examples/turboscribe.chevron --verify
 
 Output on success:
 ```
-✔ SCP verification passed (W(G) = 0)
+✔ HL verification passed (W(G) = 0)
 ```
 
-**Why W(G) = 0:** In the updated SCP framework, W(G) is the Weaver Function — a System 2 rejection sampling check that computes structural Mutual Information (MI_AST) between modules. When the verifier reports W(G) = 0, it means zero undeclared coupling exists — every primitive is used within its contract and all module pairs outside the declared dependency graph have MI_AST = 0.
+**Why W(G) = 0:** In the HL v2.0 framework, W(G) is the Weaver Function — a System 2 rejection sampling check that computes structural Mutual Information (MI_AST) between modules. When the verifier reports W(G) = 0, it means zero undeclared coupling exists — all Topo-Categorical constraints are satisfied and all module pairs outside the declared dependency graph have MI_AST = 0.
 
 ---
 
@@ -181,9 +184,9 @@ It also validates that dependencies reference modules/specs that actually exist 
 
 ---
 
-## How the Extensions Support SCP
+## How the Extensions Support HL
 
-The Spatial Constraint Protocol has three core enforcement mechanisms. Here's how each extension maps:
+The Holographic Language has three core enforcement mechanisms. Here's how each extension maps:
 
 ### RAG Denial
 
@@ -199,17 +202,17 @@ The Spatial Constraint Protocol has three core enforcement mechanisms. Here's ho
 
 Before these extensions, RAG Denial was enforced only by `scp_bridge.py` at prompt generation time. Now the Chevron language itself prevents violations at parse time.
 
-### Glyph Contracts
+### Topo-Categorical Contracts
 
-> *"Each primitive has an inviolable semantic contract."*
+> *"Each operator has an inviolable semantic contract."*
 
-| Glyph | Contract | Verifier Check |
-|-------|----------|----------------|
-| ◬ Origin | Exactly one per scope | Multiple-origin detection |
-| 𓂀 Witness | Observes without modifying — must be terminal | Non-terminal witness detection |
-| ☾ Fold | Must have reachable base case | Argument count validation |
-| Ө Filter | Predicate must return boolean | Function call type checking |
-| ☤ Weaver | Merges without loss | *(structural — no new check needed)* |
+| Operator | Contract | Verifier Check |
+|----------|----------|----------------|
+| Hom≅0 Null Morphism | Zero coupling between A and B | Reference detection in module bodies |
+| ↦ Morphism | Directed flow only | Reverse-flow reference detection |
+| ⊕ Direct Sum | Orthogonal state spaces | Shared-state detection |
+| ⊗ Tensor Product | Documented entanglement | Coupling documentation |
+| ∂∩∅ Topo Boundary | Interface-only communication | Direct reference detection |
 
 ### Weaver Verification — System 2 Rejection Sampling (W(G) = 0)
 
@@ -219,7 +222,7 @@ The `--verify` flag automates this check. Before, you had to manually inspect gl
 
 ```bash
 python run.py my_architecture.chevron --verify
-# ✔ SCP verification passed (W(G) = 0)
+# ✔ HL verification passed (W(G) = 0)
 ```
 
 If any contract is violated, the verifier reports exactly which glyph at which location, with an explanation of why the contract was broken.
@@ -252,7 +255,7 @@ end
 
 ```bash
 python run.py types.chevron --verify
-# ✔ SCP verification passed (W(G) = 0)
+# ✔ HL verification passed (W(G) = 0)
 ```
 
 ### Run tests
@@ -268,11 +271,11 @@ python -m unittest tests.test_chevron -v
 
 | File | Purpose |
 |------|---------|
-| `chevron/lexer.py` | Tokenizer with snake_case + 9 keywords |
-| `chevron/parser.py` | Parser with 6 new AST nodes + error accumulation |
+| `chevron/lexer.py` | Tokenizer with topo-cat operators + keywords |
+| `chevron/parser.py` | Parser with topo-cat AST nodes + error accumulation |
 | `chevron/interpreter.py` | Execution with module scope + spec mode |
-| `chevron/verifier.py` | Static analysis (6 checks) |
-| `chevron/glyphs.py` | 5 glyph primitives (unchanged) |
+| `chevron/verifier.py` | Static analysis (9 checks) |
+| `chevron/glyphs.py` | 5 Topo-Categorical operators |
 | `run.py` | CLI runner with `--verify` flag |
 | `tests/test_chevron.py` | 45 tests (lexer, parser, interpreter, verifier, integration) |
 | `examples/turboscribe.chevron` | Real-world spec: 8 types, 9 modules, 166× compression |

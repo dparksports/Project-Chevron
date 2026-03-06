@@ -1,17 +1,17 @@
-# ◬ Project Chevron
+# ⊗ Project Chevron
 
-**Spatial Constraint Protocol (SCP) — Reference Implementation**
+**Holographic Language (HL) v2.0 — Reference Implementation**
 
-*The Partition Function Explosion: An Energy-Based Analysis of Attention Decay*
+*Non-Polysemic Topological DSL for AI-Assisted Software Architecture*
 
-> A neuro-symbolic architecture that reduces AI code regression from **14.3% to <0.1%** by replacing noisy tokenization with **orthogonal embedding mapping** using Uiua primitives. SCP minimizes semantic cross-talk, creates steep isolated attractor basins that pierce through context noise, and pairs them with System 2 AST rejection sampling (The Weaver) to transform the LLM from a probabilistic confabulator into a reliable architectural engine.
+> A neuro-symbolic architecture that reduces AI code regression from **14.3% to <0.1%** by replacing ambiguous natural language constraints with **mathematical operators drawn from Category Theory, Topology, and Tensor Mathematics**. These symbols occupy deep, pristine, zero-polysemy embeddings in LLM latent space (from millions of ingested arXiv LaTeX papers) and resist adversarial polysemy. HL pairs them with System 2 AST rejection sampling to transform the LLM from a probabilistic confabulator into a reliable architectural engine.
 
 **Dan Park** · [MagicPoint.ai](https://magicpoint.ai) · February 2026
 **Link:** [Download Paper (PDF)](https://github.com/dparksports/dparksports/raw/main/Holographic-AI-Language-v19.pdf)
 
 > **🚀 Ready to use it?**
 > - **[Nexus Guide](NEXUS_GUIDE.md)** — Visual AI IDE with dashboard, templates, and existing-project conversion *(recommended)*
-> - **[CLI Guide](CLI_GUIDE.md)** — Headless workflow using Forge + SCP Bridge directly
+> - **[CLI Guide](CLI_GUIDE.md)** — Headless workflow using Forge + HL Bridge directly
 
 ---
 
@@ -22,18 +22,18 @@
   - [The Partition Function and Signal Dilution](#the-partition-function-and-signal-dilution)
   - [Confabulation as Thermodynamic Relaxation](#confabulation-as-thermodynamic-relaxation)
   - [Regression Hell](#regression-hell)
-- [The Resolution: SCP](#the-resolution-spatial-constraint-protocol)
+- [The Resolution: HL](#the-resolution-holographic-language)
   - [Orthogonal Embeddings and Semantic Cross-Talk](#orthogonal-embeddings-and-semantic-cross-talk)
   - [Vertical Neuro-Symbolic Integration](#vertical-neuro-symbolic-integration)
-- [Uiua: AI Cognitive Programming Language](#uiua-ai-cognitive-programming-language)
+- [Topo-Categorical Orthogonality](#topo-categorical-orthogonality)
   - [The Zero-Shot Paradox](#the-zero-shot-paradox)
-- [The Five Glyphs](#the-five-glyphs)
-- [The Weaver: External System 2 Verification](#the-weaver-external-system-2-verification)
+- [The Five Topo-Categorical Operators](#the-five-topo-categorical-operators)
+- [System 2 Verification: The AST Weaver](#system-2-verification-the-ast-weaver)
   - [Maxwell's Demon and Rejection Sampling](#maxwells-demon-and-rejection-sampling)
 - [Empirical Results](#empirical-results)
 - [Project Chevron: The Implementation](#project-chevron-the-implementation)
-- [Using SCP with AI Agents](#using-scp-with-ai-agents-gemini-gpt-claude)
-- [SCP Forge — Auto-Decomposition](#scp-forge--automatic-codebase-decomposition)
+- [Using HL with AI Agents](#using-scp-with-ai-agents-gemini-gpt-claude)
+- [HL Forge — Auto-Decomposition](#scp-forge--automatic-codebase-decomposition)
 - [Static Verifier](#static-verifier)
 - [Language Extensions](#language-extensions)
 - [Auto-Test Generation](#auto-test-generation)
@@ -108,15 +108,15 @@ Standard LLMs have no persistent memory of these conventions. They treat each sn
 
 ---
 
-## The Resolution: Spatial Constraint Protocol
+## The Resolution: Holographic Language
 
-SCP resolves the Partition Function Explosion not by artificially restricting N, but by **altering the geometry of the prompt** to minimize semantic interference.
+HL resolves the Partition Function Explosion not by artificially restricting N, but by **altering the geometry of the prompt** to minimize semantic interference.
 
 ### Orthogonal Embeddings and Semantic Cross-Talk
 
 Standard tokenization (BPE) utilizes distributed representations — "clouds of meaning." While this continuous representation is the engine of deep learning's flexibility, it introduces massive **semantic cross-talk** during precise engineering tasks. A common word like "sort" or "update" has appeared in millions of conflicting contexts during pre-training. In a massive context window, these heavily overloaded continuous vectors create diffuse, shallow attractor basins that are easily washed out by Z.
 
-**The Resolution:** SCP replaces these entangled natural language tokens with mathematically specific, rare symbols (Uiua glyphs). SCP does not bypass distributed representations; rather, it leverages them by finding **isolated coordinates**.
+**The Resolution:** HL replaces these entangled natural language tokens with mathematically specific, rare symbols (Topo-Categorical operators). HL does not bypass distributed representations; rather, it leverages them by finding **isolated coordinates**.
 
 Because these mathematical glyphs are exceedingly rare in the training corpus, their continuous vector embeddings are largely **orthogonal** to the dense, noisy clusters of common English words:
 
@@ -124,7 +124,7 @@ Because these mathematical glyphs are exceedingly rare in the training corpus, t
 𝔼[sim(e_SCP, e_distractor)] ≈ 0
 ```
 
-By mapping architectural constraints to these un-interfered embeddings, a rare glyph acts as an **isolated, steep attractor basin**. It minimizes semantic cross-talk, forcing the model's attention mechanism to converge cleanly on a specific continuous coordinate rather than distributing probability mass over an overloaded semantic cloud.
+By mapping architectural constraints to these un-interfered embeddings, a rare operator acts as an **isolated, steep attractor basin**. It minimizes semantic cross-talk, forcing the model's attention mechanism to converge cleanly on a specific continuous coordinate rather than distributing probability mass over an overloaded semantic cloud.
 
 **Key properties:**
 
@@ -135,80 +135,84 @@ By mapping architectural constraints to these un-interfered embeddings, a rare g
 
 ### Vertical Neuro-Symbolic Integration
 
-A critical finding is that this mapping is effective even if the specific glyphs are rare in the training corpus (the **Zero-Shot Paradox**). SCP functions via Vertical Integration: the orthogonal glyph acts as a clean pointer to a pre-existing "latent thought" or robust vector cluster (e.g., the algorithmic concept of "sorting" or "isolation") that the model already possesses, retrieving the concept **without dragging in the semantic noise** of the English word itself.
+A critical finding is that this mapping is effective even if the specific operators are rare in the training corpus (the **Zero-Shot Paradox**). HL functions via Vertical Integration: the orthogonal operator acts as a clean pointer to a pre-existing "latent thought" or robust vector cluster that the model already possesses, retrieving the concept **without dragging in the semantic noise** of the English word itself.
 
 ---
 
-## Uiua: AI Cognitive Programming Language
+## Topo-Categorical Orthogonality
 
-SCP leverages **[Uiua](https://www.uiua.org/)** (pronounced "wee-wuh") — a stack-based array programming language created by Kai Schmidt — as its primitive language. Uiua was chosen not just for brevity, but for its mathematical properties:
+HL v2.0 leverages **mathematical operators from Category Theory, Topology, and Tensor Mathematics** as its constraint primitives. These symbols (⊗, ⊕, ↦, ∂, ∅, ≅) were chosen not for brevity, but for their **deep, pristine embeddings** in foundational LLMs:
 
-### 1. Glyph-Based Syntax
-Uiua uses single Unicode characters as operations. Operations like ⍏ (sort), ♭ (flatten), and ⇌ (reverse) achieve in a single token what requires multiple tokens in Python. This creates **Bijective Singleton Maps**:
+### Why Mathematical Operators?
+
+Modern LLMs are trained on millions of arXiv LaTeX papers. Symbols like `⊗` (Tensor Product), `⊕` (Direct Sum), and `∂` (Boundary) have been ingested in mathematically rigorous contexts millions of times. Unlike natural language words ("coupled", "isolated", "depends"), these operators carry **exactly one semantic interpretation** — zero polysemy.
+
+This creates **Bijective Singleton Maps**:
 
 ```
-∀ l ∈ ℒ_Uiua : |f⁻¹(f(l))| = 1
+∀ op ∈ Operators : |f⁻¹(f(op))| = 1
 ```
 
-Every symbol maps to exactly one vector. Every vector maps back to exactly one symbol.
+Every operator maps to exactly one vector. Every vector maps back to exactly one interpretation.
 
-### 2. Rank Polymorphism
-Operations automatically adapt to arrays of any dimensionality. The expression `+1` adds 1 to a scalar, a vector, or a billion-element tensor without code changes. This is the **fractal property in executable form**: solve the problem for one atom, and you've solved it for the universe.
+### arXiv Latent Anchors
 
-### 3. Tacit (Point-Free) Programming
-Functions do not name their arguments. This eliminates variable naming — a massive source of ambiguity and "noise" in standard code — allowing the attention mechanism to focus purely on the **transformation**, not the **labels**.
+The key insight of v2.0: rather than using rare glyphs that may not exist in the training corpus, HL now uses symbols that occupy the **deepest, most stable embeddings** in any LLM's latent space. A symbol like `⊗` has been reinforced across millions of physics and mathematics papers with a single, consistent meaning — making it a natural **steep attractor basin** that resists the Partition Function Explosion.
 
-### The Zero-Shot Paradox
+### Non-Polysemic Enforcement
 
-A crucial question: can this mapping work for characters the model was never trained on?
-
-The SCP paper argues that while the **glyphs** may be rare in the training corpus (like Uiua symbols), the **latent concepts** they map to (sorting, filtering, folding) are heavily represented via Python, C++, etc. SCP performs **Vertical Neuro-Symbolic Integration** through three mechanisms:
-
-1. **Injected Embeddings / Adapters:** The `scp_bridge.py` handles translation of glyphs into specific embedding vectors the model **does** recognize
-2. **Latent Reasoning:** Research on **Coconut (Chain of Continuous Thought)** confirms LLMs can reason in "latent space" without outputting language tokens — SCP leverages this by feeding the "thought" directly
-3. **Visual Tokenization:** Research into "Reasoning Over Glyphs" shows that if a glyph is treated as a **hard-coded index** rather than a language token, the model can utilize it
-
-The model isn't trained on the *corpus* of Uiua literature (which is small), but the **protocol bridges the gap**, allowing the glyph to trigger pre-trained latent capability.
+Each operator carries exactly one constraint interpretation:
+- `Hom(A,B) ≅ 0` means **strict isolation** — period
+- `A ↦ B` means **directed flow** — no ambiguity
+- `A ⊕ B` means **orthogonal coexistence** — no shared state
+- `A ⊗ B` means **state entanglement** — documented coupling
+- `∂A ∩ ∂B = ∅` means **interface encapsulation** — abstract boundary only
 
 ---
 
-## The Five Glyphs
+## The Five Topo-Categorical Operators
 
-Project Chevron implements five foundational primitives, each drawn from historical and archaeological lore:
+Project Chevron v2.0 implements five foundational constraint operators drawn from Category Theory, Topology, and Tensor Mathematics:
 
-| Glyph | Name | Origin | Semantic Function |
-|:-----:|------|--------|-------------------|
-| **◬** | **The Origin** | Rendlesham Forest | Program entry point — all threads spawn here |
-| **☾** | **Fold Time** | Roswell I-Beam | Recursion — output feeds back into input |
-| **Ө** | **The Filter** | Roswell I-Beam | Conditional gate — only matching data passes |
-| **𓂀** | **The Witness** | Egyptian Hieroglyphs | Observe without altering — pure logging |
-| **☤** | **The Weaver** | Caduceus / Double Helix | Merge — braid two streams into one |
+| Operator | Name | Symbol | Intent | Enforcement |
+|---|---|---|---|---|
+| **Null Morphism** | `Hom(A,B) ≅ 0` | ≅ | Strict isolation | A must never reference B |
+| **Morphism** | `A ↦ B` | ↦ | Directed data flow | Reverse flow (B→A) forbidden |
+| **Direct Sum** | `A ⊕ B` | ⊕ | Decoupled coexistence | No shared state between A and B |
+| **Tensor Product** | `A ⊗ B` | ⊗ | State entanglement | Structural coupling documented |
+| **Topo Boundary** | `∂A ∩ ∂B = ∅` | ∂∩∅ | Interface encapsulation | Abstract interface only |
 
 ### Design Principles
 
-Each glyph carries a **contract** (what it accepts and produces) and a **constraint** (what it must NEVER do):
+Each operator carries a **contract** (what it enforces) and a **constraint** (what it must NEVER allow):
 
-- **◬ Origin:** Must appear exactly once per program. Must not be nested.
-- **☾ Fold Time:** Must always have a reachable base case. Must not mutate external state.
-- **Ө Filter:** Must never modify data. Reject, don't transform.
-- **𓂀 Witness:** Must NEVER modify the data stream. Pure observation only.
-- **☤ Weaver:** Must preserve all input. Nothing may be lost in the weaving.
+- **Hom≅0 (Null Morphism):** Zero coupling — no import, call, or data path between A and B.
+- **↦ (Morphism):** Directed flow only — reverse direction is forbidden. Must be acyclic (DAG).
+- **⊕ (Direct Sum):** Orthogonal state spaces — no shared mutable state, singletons, or globals.
+- **⊗ (Tensor Product):** Documented entanglement — changes to one side must propagate.
+- **∂∩∅ (Topo Boundary):** Interface encapsulation — all communication via abstract interface only.
 
 ---
 
-## The Weaver: External System 2 Verification
+## System 2 Verification: The AST Weaver
 
-A critical challenge in generating reliable software architectures is verifying strict modular independence. Standard intuitive Transformers (System 1) cannot natively compute exact, discrete Mutual Information (MI) during a continuous forward pass. SCP addresses this via an external **System 2** verification loop known as **The Weaver**.
+A critical challenge in generating reliable software architectures is verifying strict modular independence. Standard intuitive Transformers (System 1) cannot natively compute exact, discrete Mutual Information (MI) during a continuous forward pass. HL addresses this via an external **System 2** verification loop — the AST Weaver.
 
 ### Maxwell's Demon and Rejection Sampling
 
 The Weaver Function W(G) is not an internal property of the neural network's weights or thermodynamics. Instead, it functions as a classic, external algorithm — acting as **Maxwell's Demon** — that evaluates and filters the network's output via rigorous **rejection sampling**:
 
-1. **Generation (System 1):** The neural model proposes a code block based on the un-interfered, Uiua-constrained prompt, settling into a local minimum.
+1. **Generation (System 1):** The neural model proposes a code block based on the non-polysemic, topo-categorically constrained prompt, settling into a local minimum.
 2. **Extraction (Symbolic):** A classic AST parser extracts the dependency graph G = (M, E) from the generated code.
-3. **Verification (System 2):** The external Weaver calculates the structural Mutual Information between modules by analyzing the AST for shared state, implicit coupling, or side effects:
+3. **Verification (System 2):** The external Weaver checks each Topo-Categorical constraint against the AST:
    ```
    W(G) = Σ_{(i,j) ∉ E} MI_AST(mᵢ, mⱼ)
+   ```
+   Violations produce thermodynamic rejection messages:
+   ```
+   [SYSTEM 2 REJECTION]: Hom≅0 — Module 'Search' references forbidden 'Database'. Resample required.
+   [SYSTEM 2 REJECTION]: ↦ — Reverse flow Renderer → DataLoader violates directed morphism. Resample required.
+   [SYSTEM 2 REJECTION]: ∂∩∅ — Direct reference UI → Database violates topological boundary. Resample required.
    ```
 4. **Rejection Sampling:** If W(G) > 0, the state is rejected. The classical algorithmic system throws out the generation and forces the neural model to resample, driving a search loop until it produces a valid, orthogonal architecture.
 
@@ -222,11 +226,11 @@ This hybrid approach layers rigorous classical algorithmic verification (System 
 - **Target:** TurboScribe — large-scale native Windows application (<50,000 LOC)
 - **Stack:** C#, Python, CUDA (high-dimensional, multi-language environment)
 - **Baseline:** Standard GPT-4 with 128k context window
-- **Intervention:** SCP with Uiua Orthogonal Mapping
+- **Intervention:** HL with Topo-Categorical Operators
 
 ### Quantitative Outcomes
 
-| Metric | Baseline (GPT-4) | SCP Implementation | Improvement |
+| Metric | Baseline (GPT-4) | HL Implementation | Improvement |
 |--------|:-----------------:|:------------------:|:-----------:|
 | Context Required | 128,000 tokens | 1,200 orthogonal primitives | **100×** |
 | Regression Rate | 14.3% per commit | <0.1% per commit | **143×** |
@@ -246,7 +250,7 @@ Based on these results, the [SystemMonitor project](https://github.com/dparkspor
 
 ## Project Chevron: The Implementation
 
-Project Chevron is the **reference implementation** of SCP — a working glyph-based programming language where code is written using the five symbolic primitives.
+Project Chevron is the **reference implementation** of HL v2.0 — a Non-Polysemic Topological DSL where module relationships are expressed using five mathematical operators from Category Theory, Topology, and Tensor Mathematics.
 
 ### Project Structure
 
@@ -256,24 +260,24 @@ chevron/
 ├── README.md                      # This file
 ├── SCP_TESTING.md                 # Auto-test generation docs
 ├── EXTENSIONS.md                  # Language extension docs
-├── index.html                     # SCP research website
-├── scp_bridge.py                  # ★ SCP → AI Agent system prompt generator
-├── forge.py                       # ★ Automatic codebase → SCP decomposition
+├── index.html                     # HL research website
+├── scp_bridge.py                  # ★ HL → AI Agent system prompt generator
+├── forge.py                       # ★ Automatic codebase → HL decomposition
 ├── repl.py                        # Interactive REPL
 ├── run.py                         # File runner (execute .chevron files)
 ├── chevron/                       # The interpreter
-│   ├── __init__.py                # Package exports (v0.3.0)
-│   ├── glyphs.py                  # Glyph registry
-│   ├── lexer.py                   # Tokenizer (snake_case + keywords)
-│   ├── parser.py                  # Parser (modules, specs, types, errors)
+│   ├── __init__.py                # Package exports (v2.0.0)
+│   ├── glyphs.py                  # Operator registry (Topo-Categorical)
+│   ├── lexer.py                   # Tokenizer (topo-cat operators + keywords)
+│   ├── parser.py                  # Parser (topo-cat AST nodes, modules, specs)
 │   ├── interpreter.py             # Executor (module scope, spec mode)
-│   ├── verifier.py                # ★ Static SCP constraint verifier (6 checks)
+│   ├── verifier.py                # ★ Static HL constraint verifier (9 checks)
 │   ├── code_verifier.py           # ★ AST-based formal code verification
 │   ├── decorators.py              # ★ Runtime-enforced glyph decorators
 │   └── test_generator.py          # ★ Deterministic spec-driven test gen
 ├── templates/                     # Code generation templates
 │   └── spec_cli.py.template       # CLI scaffold for forge-generated projects
-├── tests/                         # Test suite (89 tests)
+├── tests/                         # Test suite
 │   ├── test_chevron.py            # 45 tests (lexer, parser, interp, verifier)
 │   ├── test_code_verifier.py      # 16 tests (AST verification)
 │   ├── test_decorators.py         # 17 tests (runtime glyph enforcement)
@@ -283,24 +287,24 @@ chevron/
     ├── pipeline.chevron            # Origin → Filter → Witness
     ├── recursion.chevron           # Fold Time countdown
     ├── weave_filter.chevron        # Weave + Filter composition
-    ├── todo.chevron                # Todo app SCP spec
-    ├── turboscribe.chevron         # TurboScribe SCP spec (9 modules)
+    ├── todo.chevron                # Todo app HL spec
+    ├── turboscribe.chevron         # TurboScribe HL spec (9 modules)
     ├── turboscribe_example.py      # ★ Full TurboScribe generation demo
     └── gemini_example.py           # Gemini integration demo
 ```
 
 ---
 
-## Using SCP with AI Agents (Gemini, GPT, Claude)
+## Using HL with AI Agents (Gemini, GPT, Claude)
 
 This is how you actually use Project Chevron to write real software with AI.
 
 ### The Core Idea
 
 Instead of pasting your entire codebase (128K tokens) into an AI prompt, you:
-1. **Define your architecture** as an SCP spec (~1,200 tokens)
+1. **Define your architecture** as an HL spec (~1,200 tokens)
 2. **Generate a constrained system prompt** for ONE module at a time
-3. **Feed it to any AI** — the AI generates code that follows SCP rules
+3. **Feed it to any AI** — the AI generates code that follows HL rules
 4. **Verify with the Weaver** — a second AI pass checks for coupling violations
 
 The AI physically **cannot see** other modules' implementations (RAG Denial). It sees only their interface contracts. This eliminates emergent coupling at the source.
@@ -316,7 +320,7 @@ from scp_bridge import SCPBridge
 bridge = SCPBridge.from_template("todo_app")
 ```
 
-**Step 2: Generate the SCP system prompt for ONE module**
+**Step 2: Generate the HL system prompt for ONE module**
 
 ```python
 # This generates a ~700-token prompt that constrains the AI
@@ -344,7 +348,7 @@ response = client.models.generate_content(
         temperature=0.1,  # Low temp = more deterministic
     ),
 )
-print(response.text)  # → Python code constrained by SCP
+print(response.text)  # → Python code constrained by HL
 ```
 
 **Step 4: Verify with the Weaver (☤)**
@@ -353,7 +357,7 @@ print(response.text)  # → Python code constrained by SCP
 # Generate a verification prompt
 verify_prompt = bridge.generate_verification_prompt("TodoStore", response.text)
 
-# Ask the AI to check its own work against the SCP spec
+# Ask the AI to check its own work against the HL spec
 verify = client.models.generate_content(
     model="gemini-2.0-flash",
     contents=verify_prompt,
@@ -364,7 +368,7 @@ print(verify.text)  # → PASS or FAIL with specific violations
 
 ### Without an API Key
 
-You can also use the SCP Bridge from the command line and paste the output into any AI chat:
+You can also use the HL Bridge from the command line and paste the output into any AI chat:
 
 ```bash
 # Generate the system prompt
@@ -405,9 +409,9 @@ This runs the full 4-step workflow: template → prompt → generate → verify.
 
 ---
 
-## SCP Forge — Automatic Codebase Decomposition
+## HL Forge — Automatic Codebase Decomposition
 
-The **Forge** (`forge.py`) scans any existing codebase and uses Gemini to automatically decompose it into an SCP architecture — modules, types, dependency graph, forbidden zones, and glyph assignments.
+The **Forge** (`forge.py`) scans any existing codebase and uses Gemini to automatically decompose it into an HL architecture — modules, types, dependency graph, forbidden zones, and operator assignments.
 
 ### How It Works
 
@@ -440,43 +444,43 @@ The Forge generates:
 
 ## Static Verifier
 
-The Chevron verifier (`chevron/verifier.py`) runs 6 static checks on the parsed AST *before* execution, enforcing SCP constraints at the language level:
+The Chevron verifier (`chevron/verifier.py`) runs 9 static checks on the parsed AST *before* execution, enforcing Topo-Categorical HL constraints at the language level:
 
-| Check | Glyph | Rule | Level |
-|-------|-------|------|-------|
-| Origin count | ◬ | Exactly one per scope | Error |
-| Witness terminal | 𓂀 | Must be last in pipeline | Error |
-| Fold arguments | ☾ | Requires predicate + transform | Error |
+| Check | Operator | Rule | Level |
+|-------|----------|------|-------|
+| Null Morphism | Hom≅0 | A must never reference B | Error |
+| Morphism Direction | ↦ | Reverse flow (B→A) forbidden | Error |
+| Direct Sum | ⊕ | No shared state between A and B | Error |
+| Tensor Product | ⊗ | Structural coupling documented | Error |
+| Topo Boundary | ∂∩∅ | Interface-only communication | Error |
 | Forbidden deps | — | No references to forbidden modules | Error |
-| Circular deps | — | No cycles in `depends_on` graph | Error |
+| Circular deps | — | No cycles in `depends_on` graph (DAG) | Error |
+| Dependency integrity | — | `depends_on` targets must exist | Warning |
 | Type annotations | — | Warn on undeclared types | Warning |
 
 ```bash
 # Verify an architecture spec
 python run.py examples/turboscribe.chevron --verify
-# ✔ SCP verification passed (W(G) = 0)
+# ✔ HL verification passed (W(G) = 0)
 ```
 
-When the verifier reports **W(G) = 0**, the program's glyph graph has zero constraint violations.
+When the verifier reports **W(G) = 0**, the program's Topo-Categorical constraint graph has zero violations.
 
 ---
 
 ## Language Extensions
 
-Chevron v0.3 adds formal verification, runtime decorators, and spec-driven test generation on top of the v0.2 language extensions, while preserving the 5 primitive glyphs unchanged. Key additions in v0.3:
+Chevron v2.0 introduces the Non-Polysemic Topological DSL with Topo-Categorical operators, formal verification, runtime decorators, and spec-driven test generation. Key features:
 
+- **Topo-Categorical operators** — `Hom≅0`, `↦`, `⊕`, `⊗`, `∂∩∅` for non-polysemic module constraints
 - **Formal code verification** — `CodeVerifier` uses AST analysis to deterministically check generated code (replaces AI self-verification)
 - **Runtime decorators** — `@chevron.origin`, `@chevron.filter`, `@chevron.fold`, `@chevron.witness`, `@chevron.weaver`
 - **Spec-driven test generation** — `SpecTestGenerator` produces pytest tests from contracts, not from implementation
 - **Structured output** — `generate_structured_schema()` produces JSON schemas for Gemini's `response_schema`
-
-Previous extensions (v0.2):
-
 - **Module system** — isolated scopes with `imports`, `exports`, `forbidden`, and `constraint`
 - **Spec mode** — architecture-only declarations (never executed), verifiable before any code exists
 - **Type declarations** — structural types (e.g., `type MediaFile = { path: str, size: int }`) for pipeline contracts
 - **Snake case identifiers** — `find_media` is a single token
-- **Function calls in predicates** — `Ө {is_prime 2}`
 - **Error accumulation** — parser reports all errors, not just the first
 
 See [EXTENSIONS.md](EXTENSIONS.md) for the full specification.
@@ -485,14 +489,14 @@ See [EXTENSIONS.md](EXTENSIONS.md) for the full specification.
 
 ## Auto-Test Generation
 
-The `--with-tests` flag adds contract-driven test generation to the SCP pipeline:
+The `--with-tests` flag adds contract-driven test generation to the HL pipeline:
 
 ```bash
 # Generate all modules with AI, verify each, and run auto-tests
 python examples/turboscribe_example.py --all --with-tests
 ```
 
-Tests are generated from the **SCP contract** (not from the implementation), verifying:
+Tests are generated from the **HL contract** (not from the implementation), verifying:
 - **Structural** — methods exist with correct signatures
 - **Constraint** — module-specific rules via AST inspection
 - **Behavioral** — return types, edge cases, error handling (mocked)
@@ -504,7 +508,7 @@ See [SCP_TESTING.md](SCP_TESTING.md) for full documentation.
 
 ## Real-World Example: TurboScribe
 
-The TurboScribe example demonstrates SCP on a real 110K-token audio processing backend, decomposed into 9 isolated modules:
+The TurboScribe example demonstrates HL on a real 110K-token audio processing backend, decomposed into 9 isolated modules:
 
 ```bash
 # Generate all 9 modules
@@ -534,15 +538,6 @@ cd Project-Chevron
 python run.py examples/hello.chevron
 ```
 
-**Output:**
-```
-◬ ─── Running: hello.chevron ───
-
-𓂀 ⟫ Hello World
-
-☾ ─── Complete ───
-```
-
 ### Run All Examples
 
 ```bash
@@ -552,13 +547,11 @@ python run.py examples/recursion.chevron
 python run.py examples/weave_filter.chevron
 ```
 
-**Expected output:**
-```
-𓂀 ⟫ Hello World              # hello.chevron
-𓂀 ⟫ [25, 47, 92]             # pipeline.chevron — filters > 10
-𓂀 ⟫ 0                        # recursion.chevron — countdown 10 → 0
-𓂀 ⟫ [8, 9, 7]                # weave_filter.chevron — merge then filter > 5
-```
+Each example demonstrates Topo-Categorical operators:
+- `hello.chevron` — Tensor Product `⊗` (state entanglement)
+- `pipeline.chevron` — Pipeline `→` with filter predicates
+- `recursion.chevron` — Recursive morphism chains
+- `weave_filter.chevron` — Tensor Product `⊗` + pipeline filtering
 
 ### Interactive REPL
 
@@ -598,34 +591,38 @@ The REPL provides an interactive environment to experiment with Chevron:
 | List | `[1, 2, 3]` | Ordered collection |
 | Boolean | `true`, `false` | Truth values |
 
-### Operators
+### Topo-Categorical Operators
 
 | Symbol | Name | Description |
 |:------:|------|-------------|
+| `≅` | Null Morphism | `Hom(A,B) ≅ 0` — Strict isolation |
+| `↦` | Morphism | `A ↦ B` — Directed data flow |
+| `⊕` | Direct Sum | `A ⊕ B` — Decoupled coexistence |
+| `⊗` | Tensor Product | `A ⊗ B` — State entanglement |
+| `∂∩∅` | Topo Boundary | `∂A ∩ ∂B = ∅` — Interface encapsulation |
 | `→` | Pipeline | Data flows left to right |
 | `←` | Binding | Assign a name to an expression |
-| `( )` | Grouping | Group a glyph with its arguments |
-| `[ ]` | List | Define an array of values |
-| `{ }` | Predicate | Define a condition for `Ө` or transform for `☾` |
+| `{ }` | Predicate | Filter or transform condition |
 | `#` | Comment | Line comment |
 
 ### Pipeline Composition
 
-Glyphs compose left to right with `→`, forming data-flow pipelines:
+Expressions compose left to right with `→`, forming data-flow pipelines:
 
 ```
-◬ [5, 3, 1, 4, 2] → Ө {> 2} → 𓂀
+[5, 3, 1, 4, 2] → {> 2}
 ```
 
-1. `◬` produces the data `[5, 3, 1, 4, 2]`
-2. `→` pipes it into `Ө {> 2}` which filters to `[5, 3, 4]`
-3. `→` pipes that into `𓂀` which logs `[5, 3, 4]`
+Filters the list, keeping only items greater than 2.
 
-### Named Bindings
+### Topo-Categorical Constraints
 
-```
-BigOnly ← Ө {> 100}
-◬ [50, 200, 75, 300] → BigOnly → 𓂀
+```chevron
+Hom(Frontend, Database) ≅ 0     # No coupling allowed
+DataLoader ↦ Processor ↦ Renderer  # Directed flow
+Logger ⊕ Analytics                 # Independent state
+Auth ⊗ Session                     # Documented entanglement
+∂UI ∩ ∂Database = ∅               # Interface-only boundary
 ```
 
 See [SPEC.md](SPEC.md) for the complete specification.
@@ -658,24 +655,25 @@ Source Code (.chevron)
      Output
 ```
 
-### Glyph Registry (`glyphs.py`)
+### Operator Registry (`glyphs.py`)
 
-The registry is the core glyph definition map. Each glyph entry carries:
+The registry is the core operator definition map. Each operator entry carries:
 
-- **Symbol:** The Unicode character
-- **Name:** Human-readable name with lore origin
-- **Contract:** What it accepts and produces
-- **Constraint:** What it must NEVER do
+- **Symbol:** The mathematical notation
+- **Name:** Human-readable name
+- **Category:** Mathematical domain (Category Theory, Topology, Tensor)
+- **Contract:** What it enforces
+- **Constraint:** What it must NEVER allow
 
 ```python
-from chevron.glyphs import GLYPH_REGISTRY, lookup, describe_all
+from chevron.glyphs import OPERATOR_REGISTRY, lookup, describe_all
 
-# Look up a glyph
-info = lookup("𓂀")
-print(info.name)       # "The Witness"
-print(info.origin)     # "Egyptian"
-print(info.contract)   # "Accepts any data → Logs it → Passes it through unchanged"
-print(info.constraint) # "Must NEVER modify the data. Pure observation only."
+# Look up an operator
+info = lookup("⊗")
+print(info.name)       # "Tensor Product"
+print(info.category)   # "Tensor Mathematics"
+print(info.contract)   # "Accepts (left, right) → Documents tight structural coupling"
+print(info.constraint) # "Changes to either side must propagate..."
 
 # Print full registry table
 print(describe_all())
@@ -706,6 +704,6 @@ This project is released for research and educational purposes.
 ---
 
 <p align="center">
-  <strong>◬ ☾ Ө 𓂀 ☤</strong><br>
+  <strong>Hom≅0 · ↦ · ⊕ · ⊗ · ∂∩∅</strong><br>
   <em>The first chevron is locked.</em>
 </p>

@@ -1,3 +1,3 @@
-# Pipeline Example in Chevron
-# Origin produces data → Filter keeps values > 10 → Witness observes
-◬ [10, 25, 3, 47, 8, 92, 1] → Ө {> 10} → 𓂀
+# Pipeline Example in Chevron v2.0 — Topo-Categorical DSL
+# Data flows via Morphism (↦) through a filter predicate
+[10, 25, 3, 47, 8, 92, 1] → {> 10}

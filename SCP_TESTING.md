@@ -1,16 +1,16 @@
-# 🧪 SCP Auto-Testing — Contract-Driven Test Generation
+# 🧪 HL Auto-Testing — Contract-Driven Test Generation
 
 ## What It Does
 
-The `--with-tests` flag adds a third verification step to the SCP pipeline:
+The `--with-tests` flag adds a third verification step to the HL pipeline:
 
 ```
-1. Generate module code   → from orthogonal SCP contract (steep attractor basin)
+1. Generate module code   → from orthogonal HL contract (steep attractor basin)
 2. Weaver verification    → System 2 rejection sampling (W(G) = 0 check)
 3. Auto-test generation   → pytest tests from contract, executed automatically
 ```
 
-Tests are generated from the **SCP contract specification**, not from reading the implementation.
+Tests are generated from the **HL contract specification**, not from reading the implementation.
 This means they verify that the generated code conforms to the *architecture spec*
 rather than merely testing that the code does what it does.
 
@@ -39,16 +39,16 @@ examples/generated/
 ## How It Works
 
 ### Step 1: Module Generation (existing)
-The SCP Bridge generates a **system prompt** from the architecture spec using orthogonal Uiua embeddings,
+The HL Bridge generates a **system prompt** from the architecture spec using non-polysemic Topo-Categorical operators,
 constraining the AI to implement only the specified module with only its declared dependencies visible
-(RAG Denial pattern). The orthogonal embeddings create steep attractor basins that minimize semantic cross-talk.
+(RAG Denial pattern). The non-polysemic operators create steep attractor basins that minimize semantic cross-talk.
 
 ### Step 2: Weaver Verification — System 2 Rejection Sampling (existing)
 The Weaver (acting as Maxwell's Demon) performs AST-based rejection sampling: method signatures,
 dependency isolation, constraint compliance, and coupling detection (MI_AST = 0 for all non-edge pairs → W(G) = 0).
 
 ### Step 3: Test Generation (new — `--with-tests`)
-A **test generation prompt** is created from the same SCP contract. The AI generates pytest tests
+A **test generation prompt** is created from the same HL contract. The AI generates pytest tests
 that verify four categories:
 
 | Category | What It Tests | How |
@@ -91,7 +91,7 @@ Each test file is run with `pytest -v --tb=short`. Results are reported per-modu
 
 ### What Auto-Tests Cover
 
-- ✅ **Method existence** — every method in the SCP spec exists as a callable
+- ✅ **Method existence** — every method in the HL spec exists as a callable
 - ✅ **Signature conformance** — parameter names and count match spec
 - ✅ **Return type checking** — output types match declared types
 - ✅ **Import restrictions** — forbidden project modules are not imported
@@ -135,7 +135,7 @@ environments may hit this limit.
 
 ```
 scp_bridge.py
-  └─ generate_test_prompt()      ← builds AI prompt from SCP contract
+  └─ generate_test_prompt()      ← builds AI prompt from HL contract
 
 turboscribe_example.py
   └─ generate_tests()            ← calls Gemini, saves test file, runs pytest
@@ -145,6 +145,6 @@ templates/spec_cli.py.template
   └─ _generate_tests()           ← same logic for forge-generated projects
 ```
 
-The test prompt includes the **full generated code** alongside the **SCP contract**,
+The test prompt includes the **full generated code** alongside the **HL contract**,
 giving the AI enough context to write tests that actually import and call the module
 while verifying contract compliance.

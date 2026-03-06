@@ -1,6 +1,6 @@
-# ◬ TurboScribe Architecture in Chevron
+# TurboScribe Architecture in Chevron v2.0 — Topo-Categorical DSL
 # GPU-Accelerated Audio Transcription & Analysis
-# 9 SCP modules · 24 methods · 5 glyph primitives
+# 9 SCP modules · 24 methods · 5 Topo-Categorical operators
 #
 # Source: fast_engine.py (~1,520 LOC) + timestamp_engine.py (~416 LOC)
 # Full codebase: ~109,633 tokens → SCP per-module: ~660 tokens (166× compression)
@@ -27,7 +27,6 @@ spec AudioIngest
     forbidden [Transcriber, SearchEngine, MeetingDetector, Analyzer]
     constraint "No ML imports — raw I/O only"
     constraint "Must validate file existence before loading"
-    # ◬ "directory" → find_media → [MediaFile] → 𓂀
 end
 
 spec VoiceDetector
@@ -96,21 +95,46 @@ spec ProgressWitness
 end
 
 # ─────────────────────────────────────────────
+# Topo-Categorical Constraints
+# ─────────────────────────────────────────────
+
+# Strict Isolation: SearchEngine must never touch AudioIngest
+Hom(SearchEngine, AudioIngest) ≅ 0
+Hom(SearchEngine, VoiceDetector) ≅ 0
+
+# Directed Data Flow (DAG)
+AudioIngest ↦ VoiceDetector
+VoiceDetector ↦ Transcriber
+Transcriber ↦ SearchEngine
+Transcriber ↦ MeetingDetector
+Transcriber ↦ Analyzer
+
+# Decoupled Coexistence: SearchEngine and MeetingDetector are independent
+SearchEngine ⊕ MeetingDetector
+SearchEngine ⊕ Analyzer
+
+# State Entanglement: MeetingDetector tightly coupled with LLMProvider
+MeetingDetector ⊗ LLMProvider
+Analyzer ⊗ LLMProvider
+
+# Interface Encapsulation: TimestampExtractor communicates via abstract interface
+∂TimestampExtractor ∩ ∂Transcriber = ∅
+
+# ─────────────────────────────────────────────
 # Executable: Audio pipeline demo
 # ─────────────────────────────────────────────
 
-# Single Origin: files discovered → weaved → filtered → witnessed
-◬ (☤ [["file1.wav", "file2.mp3"], ["file3.m4a"]]) → Ө {!= "file3.m4a"} → 𓂀
+# Files merged and filtered via pipeline
+(["file1.wav", "file2.mp3"] ⊗ ["file3.m4a"]) → {!= "file3.m4a"}
 
 # ─────────────────────────────────────────────
-# Full DAG (comment-only — spec blocks above define the contracts)
+# Full DAG
 # ─────────────────────────────────────────────
 #
-# ◬ AudioIngest
-# ├── → Ө VoiceDetector → ☾ Transcriber
-# │       ├── → Ө SearchEngine → 𓂀
-# │       ├── → Ө MeetingDetector (via ☤ LLMProvider) → 𓂀
-# │       └── → ☤ Analyzer (via ☤ LLMProvider) → 𓂀
-# └── → ☾ TimestampExtractor → 𓂀
+# AudioIngest ↦ VoiceDetector ↦ Transcriber
+#                                   ├── ↦ SearchEngine
+#                                   ├── ↦ MeetingDetector ⊗ LLMProvider
+#                                   └── ↦ Analyzer ⊗ LLMProvider
+# AudioIngest ↦ TimestampExtractor
 #
-# 𓂀 ProgressWitness (observes all, modifies nothing)
+# ProgressWitness (observes all, modifies nothing)

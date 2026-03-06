@@ -1,11 +1,17 @@
 """
-Chevron Parser
-==============
+Chevron Parser — Non-Polysemic Topological DSL
+================================================
 Recursive-descent parser that builds an Abstract Syntax Tree (AST)
 from the token stream produced by the Lexer.
 
 Supports:
-  - Pipelines, glyphs, predicates, bindings, literals, lists
+  - Topo-Categorical constraint operators:
+      Hom(A,B) ≅ 0    — Null Morphism (strict isolation)
+      A ↦ B            — Morphism (directed data flow)
+      A ⊕ B            — Direct Sum (decoupled coexistence)
+      A ⊗ B            — Tensor Product (state entanglement)
+      ∂A ∩ ∂B = ∅      — Topological Boundary (interface encapsulation)
+  - Pipelines (→), bindings (←), predicates, literals, lists
   - module / spec blocks with imports, exports, depends_on, forbidden, constraint
   - Type declarations
   - Function calls in predicates
@@ -47,15 +53,76 @@ class ListNode(ASTNode):
         self.node_type = "List"
 
 
+# ─────────────────────────────────────────────────────────────
+#  Topo-Categorical Operator Nodes
+# ─────────────────────────────────────────────────────────────
+
 @dataclass
-class GlyphNode(ASTNode):
-    """A glyph invocation with optional arguments."""
-    glyph: str = ""
-    args: list[ASTNode] = field(default_factory=list)
+class NullMorphismNode(ASTNode):
+    """Hom(A, B) ≅ 0 — Strict Isolation.
+    Module A is mathematically forbidden from importing, calling,
+    or sharing state with Module B.
+    """
+    source: str = ""
+    target: str = ""
 
     def __post_init__(self):
-        self.node_type = "Glyph"
+        self.node_type = "NullMorphism"
 
+
+@dataclass
+class MorphismNode(ASTNode):
+    """A ↦ B — Directed Data Flow.
+    Data or control strictly flows from A to B.
+    """
+    source: ASTNode | None = None
+    target: ASTNode | None = None
+
+    def __post_init__(self):
+        self.node_type = "Morphism"
+
+
+@dataclass
+class DirectSumNode(ASTNode):
+    """A ⊕ B — Decoupled Coexistence.
+    A and B exist in the same environment but maintain
+    mutually exclusive state spaces (no shared state/singletons).
+    """
+    left: ASTNode | None = None
+    right: ASTNode | None = None
+
+    def __post_init__(self):
+        self.node_type = "DirectSum"
+
+
+@dataclass
+class TensorProductNode(ASTNode):
+    """A ⊗ B — State Entanglement.
+    A and B are tightly coupled; a change in A structurally mutates B.
+    """
+    left: ASTNode | None = None
+    right: ASTNode | None = None
+
+    def __post_init__(self):
+        self.node_type = "TensorProduct"
+
+
+@dataclass
+class TopoBoundaryNode(ASTNode):
+    """∂A ∩ ∂B = ∅ — Interface Encapsulation.
+    A and B share no global state and must communicate through
+    a defined Abstract Interface; zero direct concrete references.
+    """
+    left: str = ""
+    right: str = ""
+
+    def __post_init__(self):
+        self.node_type = "TopoBoundary"
+
+
+# ─────────────────────────────────────────────────────────────
+#  Standard AST Nodes (pipelines, predicates, bindings, etc.)
+# ─────────────────────────────────────────────────────────────
 
 @dataclass
 class PredicateNode(ASTNode):
@@ -70,7 +137,7 @@ class PredicateNode(ASTNode):
 @dataclass
 class FuncCallNode(ASTNode):
     """A function call inside a predicate block: {func_name arg1 arg2}.
-    
+
     Represents a named operation with arguments, used when predicates
     contain domain-specific function calls rather than simple comparisons.
     """
@@ -127,7 +194,7 @@ class ProgramNode(ASTNode):
 
 
 # ─────────────────────────────────────────────────────────────
-#  New AST Nodes for Module/Spec/Type System
+#  Module/Spec/Type System Nodes
 # ─────────────────────────────────────────────────────────────
 
 @dataclass
@@ -143,7 +210,7 @@ class TypeDeclNode(ASTNode):
 @dataclass
 class TypeAnnotNode(ASTNode):
     """A type annotation in a pipeline: → TypeName.
-    
+
     Used as documentation — pass-through in execution, but the
     verifier uses these for type checking at pipeline boundaries.
     """
@@ -165,13 +232,15 @@ class ConstraintNode(ASTNode):
 @dataclass
 class ModuleNode(ASTNode):
     """A module block with isolated scope.
-    
+
     module Name
         imports A, B
         exports C, D
         depends_on [E, F]
         forbidden [G, H]
         constraint "..."
+        Hom(A, B) ≅ 0
+        A ↦ B
         ... statements ...
     end
     """
@@ -191,7 +260,7 @@ class ModuleNode(ASTNode):
 @dataclass
 class SpecNode(ASTNode):
     """A spec block — like ModuleNode but for specification-only (no execution).
-    
+
     Records contracts/interfaces without generating executable code.
     The verifier consumes spec nodes for type checking and dependency validation.
     """
@@ -233,6 +302,7 @@ class Parser:
         ast = parser.parse()
 
     Features:
+        - Topo-Categorical constraint operators (Hom, ↦, ⊕, ⊗, ∂∩∅)
         - Error accumulation: collects all parse errors, reports at end
         - Module/spec blocks with imports/exports/dependencies
         - Type declarations and annotations
@@ -278,10 +348,10 @@ class Parser:
         self.errors.append(ParseError(message, token.line, token.col))
 
     def _synchronize(self):
-        """Skip tokens until we reach a sync point (newline, EOF, end, glyph)."""
+        """Skip tokens until we reach a sync point (newline, EOF, end)."""
         while self._current().type not in (
             TokenType.NEWLINE, TokenType.EOF,
-            TokenType.KW_END, TokenType.GLYPH,
+            TokenType.KW_END,
         ):
             self._advance()
 
@@ -314,7 +384,8 @@ class Parser:
         return program
 
     def _parse_statement(self) -> ASTNode | None:
-        """Parse a single statement (binding, module, spec, type, constraint, or expression)."""
+        """Parse a single statement (binding, module, spec, type, constraint,
+        topo-categorical operator, or expression)."""
         token = self._current()
 
         # Module block
@@ -333,12 +404,58 @@ class Parser:
         if token.type == TokenType.KW_CONSTRAINT:
             return self._parse_constraint()
 
+        # Hom(A, B) ≅ 0  (Null Morphism)
+        if token.type == TokenType.KW_HOM:
+            return self._parse_null_morphism()
+
+        # ∂A ∩ ∂B = ∅  (Topological Boundary)
+        if token.type == TokenType.PARTIAL:
+            return self._parse_topo_boundary()
+
         # Check for binding: IDENTIFIER ← expr
         if (token.type == TokenType.IDENTIFIER
                 and self._peek().type == TokenType.BIND):
             return self._parse_binding()
 
         return self._parse_pipeline()
+
+    # ─────────────────────────────────────────────────────────
+    #  Topo-Categorical Operator Parsing
+    # ─────────────────────────────────────────────────────────
+
+    def _parse_null_morphism(self) -> NullMorphismNode:
+        """Parse: Hom(A, B) ≅ 0"""
+        token = self._advance()  # consume 'Hom'
+        self._expect(TokenType.LPAREN)
+        source_token = self._expect(TokenType.IDENTIFIER)
+        source = source_token.value if source_token.type == TokenType.IDENTIFIER else "unknown"
+        self._expect(TokenType.COMMA)
+        self._skip_newlines()
+        target_token = self._expect(TokenType.IDENTIFIER)
+        target = target_token.value if target_token.type == TokenType.IDENTIFIER else "unknown"
+        self._expect(TokenType.RPAREN)
+        self._expect(TokenType.ISOMORPHIC)
+        self._expect(TokenType.NUMBER)  # consume '0'
+        return NullMorphismNode(
+            source=source, target=target,
+            line=token.line, col=token.col,
+        )
+
+    def _parse_topo_boundary(self) -> TopoBoundaryNode:
+        """Parse: ∂A ∩ ∂B = ∅"""
+        token = self._advance()  # consume first ∂
+        left_token = self._expect(TokenType.IDENTIFIER)
+        left = left_token.value if left_token.type == TokenType.IDENTIFIER else "unknown"
+        self._expect(TokenType.INTERSECTION)  # ∩
+        self._expect(TokenType.PARTIAL)  # second ∂
+        right_token = self._expect(TokenType.IDENTIFIER)
+        right = right_token.value if right_token.type == TokenType.IDENTIFIER else "unknown"
+        self._expect(TokenType.EQ)  # =
+        self._expect(TokenType.EMPTY_SET)  # ∅
+        return TopoBoundaryNode(
+            left=left, right=right,
+            line=token.line, col=token.col,
+        )
 
     # ─────────────────────────────────────────────────────────
     #  Pipeline and Expression Parsing
@@ -356,9 +473,44 @@ class Parser:
         )
 
     def _parse_pipeline(self) -> ASTNode:
-        """Parse: expr → expr → expr ..."""
+        """Parse: expr → expr → expr ...
+        Also handles infix ↦ (Morphism), ⊕ (Direct Sum), ⊗ (Tensor Product).
+        """
         left = self._parse_expression()
 
+        # ↦ Morphism (A ↦ B)
+        if self._current().type == TokenType.MORPHISM:
+            token = self._advance()  # consume ↦
+            self._skip_newlines()
+            right = self._parse_expression()
+            # Chain further morphisms
+            node = MorphismNode(source=left, target=right,
+                                line=token.line, col=token.col)
+            while self._current().type == TokenType.MORPHISM:
+                self._advance()
+                self._skip_newlines()
+                next_right = self._parse_expression()
+                node = MorphismNode(source=node, target=next_right,
+                                    line=token.line, col=token.col)
+            return node
+
+        # ⊕ Direct Sum (A ⊕ B)
+        if self._current().type == TokenType.DIRECT_SUM:
+            token = self._advance()  # consume ⊕
+            self._skip_newlines()
+            right = self._parse_expression()
+            return DirectSumNode(left=left, right=right,
+                                 line=token.line, col=token.col)
+
+        # ⊗ Tensor Product (A ⊗ B)
+        if self._current().type == TokenType.TENSOR_PRODUCT:
+            token = self._advance()  # consume ⊗
+            self._skip_newlines()
+            right = self._parse_expression()
+            return TensorProductNode(left=left, right=right,
+                                     line=token.line, col=token.col)
+
+        # → Pipeline
         if self._current().type == TokenType.PIPELINE:
             stages = [left]
             while self._current().type == TokenType.PIPELINE:
@@ -371,12 +523,8 @@ class Parser:
         return left
 
     def _parse_expression(self) -> ASTNode:
-        """Parse a single expression (glyph call, literal, list, predicate, etc.)."""
+        """Parse a single expression (literal, list, predicate, identifier, etc.)."""
         token = self._current()
-
-        # Glyph invocation
-        if token.type == TokenType.GLYPH:
-            return self._parse_glyph()
 
         # Grouped expression
         if token.type == TokenType.LPAREN:
@@ -389,6 +537,19 @@ class Parser:
         # Predicate / function call block
         if token.type == TokenType.LBRACE:
             return self._parse_predicate()
+
+        # Hom(A, B) ≅ 0 can appear as an expression
+        if token.type == TokenType.KW_HOM:
+            return self._parse_null_morphism()
+
+        # ∂A ∩ ∂B = ∅ can appear as an expression
+        if token.type == TokenType.PARTIAL:
+            return self._parse_topo_boundary()
+
+        # ∅ as a standalone value (empty set literal)
+        if token.type == TokenType.EMPTY_SET:
+            self._advance()
+            return LiteralNode(value=None, line=token.line, col=token.col)
 
         # Literals
         if token.type == TokenType.STRING:
@@ -410,7 +571,9 @@ class Parser:
             # If this looks like a type annotation (capitalized, in pipeline context),
             # return a TypeAnnotNode so the verifier can use it
             if token.value[0].isupper() and self._current().type in (
-                TokenType.PIPELINE, TokenType.NEWLINE, TokenType.EOF,
+                TokenType.PIPELINE, TokenType.MORPHISM,
+                TokenType.DIRECT_SUM, TokenType.TENSOR_PRODUCT,
+                TokenType.NEWLINE, TokenType.EOF,
                 TokenType.RPAREN, TokenType.RBRACKET, TokenType.COMMA,
             ):
                 return TypeAnnotNode(type_name=token.value, line=token.line, col=token.col)
@@ -430,28 +593,8 @@ class Parser:
         )
 
     # ─────────────────────────────────────────────────────────
-    #  Glyph, Group, List
+    #  Group, List
     # ─────────────────────────────────────────────────────────
-
-    def _parse_glyph(self) -> GlyphNode:
-        """Parse a glyph with optional arguments."""
-        glyph_token = self._advance()
-        args = []
-
-        # Collect arguments: anything that isn't a pipeline, newline, or EOF
-        while self._current().type not in (
-            TokenType.PIPELINE, TokenType.NEWLINE, TokenType.EOF,
-            TokenType.RPAREN, TokenType.RBRACKET, TokenType.COMMA,
-        ):
-            arg = self._parse_expression()
-            args.append(arg)
-
-        return GlyphNode(
-            glyph=glyph_token.value,
-            args=args,
-            line=glyph_token.line,
-            col=glyph_token.col,
-        )
 
     def _parse_group(self) -> ASTNode:
         """Parse a parenthesized expression."""
@@ -562,7 +705,7 @@ class Parser:
 
     def _parse_identifier_list(self) -> list[str]:
         """Parse a comma-separated list of identifiers (with optional [ ] brackets).
-        
+
         For unbracketed lists (e.g., `exports A, B`), identifiers must be on
         the same line — newlines terminate the list. For bracketed lists
         (e.g., `depends_on [A, B]`), newlines are allowed between items.
@@ -595,7 +738,7 @@ class Parser:
 
     def _parse_module_body(self) -> dict:
         """Parse the interior of a module/spec block.
-        
+
         Returns dict with keys: imports, exports, depends_on, forbidden,
         constraints, types, body.
         """
@@ -650,7 +793,7 @@ class Parser:
                     result["types"].append(type_decl)
 
             else:
-                # Regular statement (pipeline, binding, etc.)
+                # Regular statement (pipeline, binding, topo-categorical, etc.)
                 try:
                     stmt = self._parse_statement()
                     if stmt is not None:

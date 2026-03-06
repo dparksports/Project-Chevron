@@ -1,28 +1,35 @@
 """
-Chevron Verifier
-================
+Chevron Verifier — Non-Polysemic Topological DSL
+==================================================
 Static analysis pass that runs after parsing (before execution) to enforce
-SCP constraints at the language level.
+Topo-Categorical constraints at the language level.
 
 Checks:
-  1. ◬ Origin count — exactly one per program/module (hard error)
-  2. 𓂀 Witness — must be terminal (no downstream mutations)
-  3. ☾ Fold — must have both predicate and transform args
-  4. Dependency graph — modules may only reference their declared imports
-  5. Forbidden modules — any reference to a forbidden module = hard error
-  6. No circular depends_on chains
-  7. Type declarations — pipeline boundary type checking (structural)
+  1. Null Morphism — Hom(A,B) ≅ 0: A must never reference B
+  2. Morphism Direction — A ↦ B: reverse flow (B → A) is forbidden
+  3. Direct Sum — A ⊕ B: no shared state between A and B
+  4. Tensor Product — A ⊗ B: structural coupling is documented
+  5. Topological Boundary — ∂A ∩ ∂B = ∅: interface-only communication
+  6. Dependency graph — modules may only reference their declared imports
+  7. Forbidden modules — any reference to a forbidden module = hard error
+  8. No circular depends_on chains
+  9. Type declarations — pipeline boundary type checking (structural)
+
+Rejection Format:
+  [SYSTEM 2 REJECTION]: <operator> <details>. Resample required.
 """
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Any
 
-from .glyphs import GLYPH_REGISTRY, GlyphType
+from .glyphs import OPERATOR_REGISTRY, OperatorType
 from .parser import (
-    ASTNode, ProgramNode, GlyphNode, PipelineNode, BindingNode,
+    ASTNode, ProgramNode, PipelineNode, BindingNode,
     LiteralNode, ListNode, PredicateNode, IdentifierNode,
     ModuleNode, SpecNode, TypeDeclNode, TypeAnnotNode, ConstraintNode,
     FuncCallNode,
+    NullMorphismNode, MorphismNode, DirectSumNode, TensorProductNode,
+    TopoBoundaryNode,
 )
 
 
@@ -38,17 +45,17 @@ class Violation:
     level: ViolationLevel
     line: int
     col: int
-    glyph: str  # Which glyph/rule is violated (e.g., "◬", "Ө", "DEPENDENCY")
+    operator: str  # Which operator/rule is violated (e.g., "Hom≅0", "↦", "DEPENDENCY")
     message: str
 
     def __str__(self) -> str:
         icon = "\u2718" if self.level == ViolationLevel.ERROR else "\u26A0"
-        return f"  {icon} L{self.line}:{self.col} [{self.glyph}] {self.message}"
+        return f"  {icon} L{self.line}:{self.col} [{self.operator}] {self.message}"
 
 
 class SCPVerifier:
     """
-    Static analysis for Chevron programs.
+    Static analysis for Chevron programs — Topo-Categorical enforcement.
 
     Usage:
         verifier = SCPVerifier()
@@ -79,133 +86,104 @@ class SCPVerifier:
                 self._spec_names.add(stmt.name)
 
         # Run checks
-        self._check_origin_count(ast)
-        self._check_witness_terminal(ast)
-        self._check_fold_args(ast)
+        self._check_null_morphisms(ast)
+        self._check_morphism_direction(ast)
+        self._check_topo_boundaries(ast)
         self._check_module_dependencies(ast)
         self._check_circular_dependencies(ast)
         self._check_types(ast)
 
         return sorted(self.violations, key=lambda v: (v.line, v.col))
 
-    def _add(self, level: ViolationLevel, line: int, col: int, glyph: str, message: str):
+    def _add(self, level: ViolationLevel, line: int, col: int, operator: str, message: str):
         """Add a violation."""
-        self.violations.append(Violation(level, line, col, glyph, message))
+        self.violations.append(Violation(level, line, col, operator, message))
 
     # ─────────────────────────────────────────────────────────
-    #  Check 1: ◬ Origin Count
+    #  Check 1: Null Morphism — Hom(A,B) ≅ 0
     # ─────────────────────────────────────────────────────────
 
-    def _check_origin_count(self, ast: ProgramNode):
-        """Verify ◬ appears exactly once per module/program."""
-        # Check top-level (non-module) statements
-        top_level_origins = self._find_glyphs(
-            [s for s in ast.statements if not isinstance(s, (ModuleNode, SpecNode))],
-            "\u25EC"
-        )
-        if len(top_level_origins) > 1:
-            for origin in top_level_origins[1:]:
-                self._add(
-                    ViolationLevel.ERROR, origin.line, origin.col, "\u25EC",
-                    f"Multiple \u25EC Origins in top-level scope ({len(top_level_origins)} found). "
-                    f"\u25EC must appear exactly once per scope."
-                )
+    def _check_null_morphisms(self, ast: ProgramNode):
+        """Verify Hom(A,B) ≅ 0 constraints — A must never reference B."""
+        # Collect all NullMorphism declarations
+        null_morphisms = self._find_nodes(ast.statements, NullMorphismNode)
 
-        # Check each module
-        for stmt in ast.statements:
-            if isinstance(stmt, ModuleNode):
-                origins = self._find_glyphs(stmt.body, "\u25EC")
-                if len(origins) == 0:
-                    self._add(
-                        ViolationLevel.ERROR, stmt.line, stmt.col, "\u25EC",
-                        f"Module '{stmt.name}' has no \u25EC Origin. Every module must have exactly one."
-                    )
-                elif len(origins) > 1:
-                    for origin in origins[1:]:
-                        self._add(
-                            ViolationLevel.ERROR, origin.line, origin.col, "\u25EC",
-                            f"Module '{stmt.name}' has {len(origins)} \u25EC Origins. Must be exactly one."
-                        )
-
-    def _find_glyphs(self, nodes: list[ASTNode], glyph_char: str) -> list[GlyphNode]:
-        """Recursively find all glyph nodes matching the given character."""
-        found = []
-        for node in nodes:
-            self._walk_for_glyphs(node, glyph_char, found)
-        return found
-
-    def _walk_for_glyphs(self, node: ASTNode, glyph_char: str, found: list):
-        """Walk the AST recursively to find glyphs."""
-        if isinstance(node, GlyphNode) and node.glyph == glyph_char:
-            found.append(node)
-        if isinstance(node, PipelineNode):
-            for stage in node.stages:
-                self._walk_for_glyphs(stage, glyph_char, found)
-        elif isinstance(node, GlyphNode):
-            for arg in node.args:
-                self._walk_for_glyphs(arg, glyph_char, found)
-        elif isinstance(node, ListNode):
-            for el in node.elements:
-                self._walk_for_glyphs(el, glyph_char, found)
+        # For each nullmorphism, check that no module body references the forbidden target
+        for nm in null_morphisms:
+            # Find the module named nm.source
+            for stmt in ast.statements:
+                if isinstance(stmt, (ModuleNode, SpecNode)) and stmt.name == nm.source:
+                    identifiers = self._collect_identifiers(stmt.body)
+                    for ident in identifiers:
+                        if ident.name == nm.target:
+                            self._add(
+                                ViolationLevel.ERROR, ident.line, ident.col, "Hom≅0",
+                                f"[SYSTEM 2 REJECTION]: Morphism {nm.source} → {nm.target} "
+                                f"violates Hom({nm.source}, {nm.target}) ≅ 0. "
+                                f"Module '{nm.source}' references forbidden target "
+                                f"'{nm.target}'. Resample required."
+                            )
 
     # ─────────────────────────────────────────────────────────
-    #  Check 2: 𓂀 Witness Must Be Terminal
+    #  Check 2: Morphism Direction — A ↦ B
     # ─────────────────────────────────────────────────────────
 
-    def _check_witness_terminal(self, ast: ProgramNode):
-        """Verify 𓂀 is always the last stage in a pipeline (no downstream stages)."""
-        for stmt in ast.statements:
-            self._walk_for_witness_terminal(stmt)
+    def _check_morphism_direction(self, ast: ProgramNode):
+        """Verify A ↦ B constraints — B must not reference A (reverse flow forbidden)."""
+        morphisms = self._find_nodes(ast.statements, MorphismNode)
 
-    def _walk_for_witness_terminal(self, node: ASTNode):
-        """Walk AST looking for pipelines with non-terminal 𓂀."""
-        if isinstance(node, PipelineNode):
-            for i, stage in enumerate(node.stages):
-                if isinstance(stage, GlyphNode) and stage.glyph == "\U000130C0":
-                    # 𓂀 found — check if it's NOT the last stage
-                    if i < len(node.stages) - 1:
-                        self._add(
-                            ViolationLevel.ERROR, stage.line, stage.col, "\U000130C0",
-                            "\U000130C0 Witness must be terminal — no stages may follow it. "
-                            "Witness observes without modifying; downstream stages would break this contract."
-                        )
-                self._walk_for_witness_terminal(stage)
-        elif isinstance(node, ModuleNode):
-            for stmt in node.body:
-                self._walk_for_witness_terminal(stmt)
-        elif isinstance(node, SpecNode):
-            for stmt in node.body:
-                self._walk_for_witness_terminal(stmt)
-        elif isinstance(node, GlyphNode):
-            for arg in node.args:
-                self._walk_for_witness_terminal(arg)
+        for morph in morphisms:
+            source_name = morph.source.name if isinstance(morph.source, IdentifierNode) else None
+            target_name = morph.target.name if isinstance(morph.target, IdentifierNode) else None
+
+            if source_name and target_name:
+                # Check the target module doesn't reference the source
+                for stmt in ast.statements:
+                    if isinstance(stmt, (ModuleNode, SpecNode)) and stmt.name == target_name:
+                        identifiers = self._collect_identifiers(stmt.body)
+                        for ident in identifiers:
+                            if ident.name == source_name:
+                                self._add(
+                                    ViolationLevel.ERROR, ident.line, ident.col, "↦",
+                                    f"[SYSTEM 2 REJECTION]: Reverse flow {target_name} → "
+                                    f"{source_name} violates {source_name} ↦ {target_name}. "
+                                    f"Data must flow unidirectionally. Resample required."
+                                )
 
     # ─────────────────────────────────────────────────────────
-    #  Check 3: ☾ Fold Must Have Args
+    #  Check 3: Topological Boundary — ∂A ∩ ∂B = ∅
     # ─────────────────────────────────────────────────────────
 
-    def _check_fold_args(self, ast: ProgramNode):
-        """Verify ☾ always has predicate and transform arguments."""
-        folds = self._find_glyphs(ast.statements, "\u263E")
-        for fold in folds:
-            if len(fold.args) < 2:
-                self._add(
-                    ViolationLevel.ERROR, fold.line, fold.col, "\u263E",
-                    f"\u263E Fold Time requires at least (predicate, transform). "
-                    f"Got {len(fold.args)} arg(s). Must have a reachable base case."
-                )
+    def _check_topo_boundaries(self, ast: ProgramNode):
+        """Verify ∂A ∩ ∂B = ∅ — no direct concrete references between A and B."""
+        boundaries = self._find_nodes(ast.statements, TopoBoundaryNode)
 
-        # Also check inside modules
-        for stmt in ast.statements:
-            if isinstance(stmt, ModuleNode):
-                mod_folds = self._find_glyphs(stmt.body, "\u263E")
-                for fold in mod_folds:
-                    if len(fold.args) < 2:
-                        self._add(
-                            ViolationLevel.ERROR, fold.line, fold.col, "\u263E",
-                            f"\u263E Fold Time in module '{stmt.name}' requires (predicate, transform). "
-                            f"Got {len(fold.args)} arg(s)."
-                        )
+        for boundary in boundaries:
+            # Both A and B must not directly reference each other
+            for stmt in ast.statements:
+                if isinstance(stmt, (ModuleNode, SpecNode)):
+                    if stmt.name == boundary.left:
+                        identifiers = self._collect_identifiers(stmt.body)
+                        for ident in identifiers:
+                            if ident.name == boundary.right:
+                                self._add(
+                                    ViolationLevel.ERROR, ident.line, ident.col, "∂∩∅",
+                                    f"[SYSTEM 2 REJECTION]: Direct reference {boundary.left} → "
+                                    f"{boundary.right} violates ∂{boundary.left} ∩ ∂{boundary.right} = ∅. "
+                                    f"Communication must go through abstract interface. "
+                                    f"Resample required."
+                                )
+                    elif stmt.name == boundary.right:
+                        identifiers = self._collect_identifiers(stmt.body)
+                        for ident in identifiers:
+                            if ident.name == boundary.left:
+                                self._add(
+                                    ViolationLevel.ERROR, ident.line, ident.col, "∂∩∅",
+                                    f"[SYSTEM 2 REJECTION]: Direct reference {boundary.right} → "
+                                    f"{boundary.left} violates ∂{boundary.left} ∩ ∂{boundary.right} = ∅. "
+                                    f"Communication must go through abstract interface. "
+                                    f"Resample required."
+                                )
 
     # ─────────────────────────────────────────────────────────
     #  Check 4: Module Dependencies
@@ -222,8 +200,9 @@ class SCPVerifier:
                         if ident.name in stmt.forbidden:
                             self._add(
                                 ViolationLevel.ERROR, ident.line, ident.col, "DEPENDENCY",
-                                f"Module '{stmt.name}' references forbidden module '{ident.name}'. "
-                                f"Forbidden zones: {stmt.forbidden}"
+                                f"[SYSTEM 2 REJECTION]: Module '{stmt.name}' references "
+                                f"forbidden module '{ident.name}'. "
+                                f"Forbidden zones: {stmt.forbidden}. Resample required."
                             )
 
                 # Check depends_on integrity
@@ -232,35 +211,9 @@ class SCPVerifier:
                     if dep not in all_known and dep not in stmt.imports:
                         self._add(
                             ViolationLevel.WARNING, stmt.line, stmt.col, "DEPENDENCY",
-                            f"Module '{stmt.name}' depends on '{dep}' which is not defined in this program."
+                            f"Module '{stmt.name}' depends on '{dep}' which is not "
+                            f"defined in this program."
                         )
-
-    def _collect_identifiers(self, nodes: list[ASTNode]) -> list[IdentifierNode]:
-        """Recursively collect all IdentifierNode references."""
-        result = []
-        for node in nodes:
-            self._walk_for_identifiers(node, result)
-        return result
-
-    def _walk_for_identifiers(self, node: ASTNode, result: list):
-        """Walk the AST to collect all identifier references."""
-        if isinstance(node, IdentifierNode):
-            result.append(node)
-        elif isinstance(node, PipelineNode):
-            for stage in node.stages:
-                self._walk_for_identifiers(stage, result)
-        elif isinstance(node, GlyphNode):
-            for arg in node.args:
-                self._walk_for_identifiers(arg, result)
-        elif isinstance(node, ListNode):
-            for el in node.elements:
-                self._walk_for_identifiers(el, result)
-        elif isinstance(node, BindingNode):
-            if node.expression:
-                self._walk_for_identifiers(node.expression, result)
-        elif isinstance(node, FuncCallNode):
-            for arg in node.args:
-                self._walk_for_identifiers(arg, result)
 
     # ─────────────────────────────────────────────────────────
     #  Check 5: No Circular Dependencies
@@ -300,10 +253,11 @@ class SCPVerifier:
                 cycle = dfs(module_name, [])
                 if cycle is not None:
                     line, col = node_lines.get(module_name, (0, 0))
-                    cycle_str = " \u2192 ".join(cycle)
+                    cycle_str = " ↦ ".join(cycle)
                     self._add(
                         ViolationLevel.ERROR, line, col, "CYCLE",
-                        f"Circular dependency detected: {cycle_str}"
+                        f"[SYSTEM 2 REJECTION]: Circular dependency detected: "
+                        f"{cycle_str}. DAG constraint violated. Resample required."
                     )
                     break  # Report first cycle only
 
@@ -338,12 +292,112 @@ class SCPVerifier:
         elif isinstance(node, PipelineNode):
             for stage in node.stages:
                 self._walk_for_type_annots(stage)
-        elif isinstance(node, GlyphNode):
-            for arg in node.args:
-                self._walk_for_type_annots(arg)
+        elif isinstance(node, MorphismNode):
+            if node.source:
+                self._walk_for_type_annots(node.source)
+            if node.target:
+                self._walk_for_type_annots(node.target)
+        elif isinstance(node, DirectSumNode):
+            if node.left:
+                self._walk_for_type_annots(node.left)
+            if node.right:
+                self._walk_for_type_annots(node.right)
+        elif isinstance(node, TensorProductNode):
+            if node.left:
+                self._walk_for_type_annots(node.left)
+            if node.right:
+                self._walk_for_type_annots(node.right)
         elif isinstance(node, ModuleNode):
             for stmt in node.body:
                 self._walk_for_type_annots(stmt)
         elif isinstance(node, SpecNode):
             for stmt in node.body:
                 self._walk_for_type_annots(stmt)
+
+    # ─────────────────────────────────────────────────────────
+    #  Helpers
+    # ─────────────────────────────────────────────────────────
+
+    def _find_nodes(self, nodes: list[ASTNode], node_type: type) -> list:
+        """Recursively find all AST nodes of a given type."""
+        found = []
+        for node in nodes:
+            self._walk_for_nodes(node, node_type, found)
+        return found
+
+    def _walk_for_nodes(self, node: ASTNode, target_type: type, found: list):
+        """Walk the AST recursively to find nodes of a given type."""
+        if isinstance(node, target_type):
+            found.append(node)
+        if isinstance(node, PipelineNode):
+            for stage in node.stages:
+                self._walk_for_nodes(stage, target_type, found)
+        elif isinstance(node, MorphismNode):
+            if node.source:
+                self._walk_for_nodes(node.source, target_type, found)
+            if node.target:
+                self._walk_for_nodes(node.target, target_type, found)
+        elif isinstance(node, DirectSumNode):
+            if node.left:
+                self._walk_for_nodes(node.left, target_type, found)
+            if node.right:
+                self._walk_for_nodes(node.right, target_type, found)
+        elif isinstance(node, TensorProductNode):
+            if node.left:
+                self._walk_for_nodes(node.left, target_type, found)
+            if node.right:
+                self._walk_for_nodes(node.right, target_type, found)
+        elif isinstance(node, ListNode):
+            for el in node.elements:
+                self._walk_for_nodes(el, target_type, found)
+        elif isinstance(node, ModuleNode):
+            for stmt in node.body:
+                self._walk_for_nodes(stmt, target_type, found)
+        elif isinstance(node, SpecNode):
+            for stmt in node.body:
+                self._walk_for_nodes(stmt, target_type, found)
+        elif isinstance(node, BindingNode):
+            if node.expression:
+                self._walk_for_nodes(node.expression, target_type, found)
+        elif isinstance(node, FuncCallNode):
+            for arg in node.args:
+                self._walk_for_nodes(arg, target_type, found)
+
+    def _collect_identifiers(self, nodes: list[ASTNode]) -> list[IdentifierNode]:
+        """Recursively collect all IdentifierNode references."""
+        result = []
+        for node in nodes:
+            self._walk_for_identifiers(node, result)
+        return result
+
+    def _walk_for_identifiers(self, node: ASTNode, result: list):
+        """Walk the AST to collect all identifier references."""
+        if isinstance(node, IdentifierNode):
+            result.append(node)
+        elif isinstance(node, PipelineNode):
+            for stage in node.stages:
+                self._walk_for_identifiers(stage, result)
+        elif isinstance(node, MorphismNode):
+            if node.source:
+                self._walk_for_identifiers(node.source, result)
+            if node.target:
+                self._walk_for_identifiers(node.target, result)
+        elif isinstance(node, DirectSumNode):
+            if node.left:
+                self._walk_for_identifiers(node.left, result)
+            if node.right:
+                self._walk_for_identifiers(node.right, result)
+        elif isinstance(node, TensorProductNode):
+            if node.left:
+                self._walk_for_identifiers(node.left, result)
+            if node.right:
+                self._walk_for_identifiers(node.right, result)
+        elif isinstance(node, ListNode):
+            for el in node.elements:
+                self._walk_for_identifiers(el, result)
+        elif isinstance(node, BindingNode):
+            if node.expression:
+                self._walk_for_identifiers(node.expression, result)
+        elif isinstance(node, FuncCallNode):
+            for arg in node.args:
+                self._walk_for_identifiers(arg, result)

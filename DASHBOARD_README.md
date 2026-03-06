@@ -73,7 +73,7 @@ Click any module node to see:
 
 - **Description** — What the module does
 - **Status** — Stub / Has Code / Verified & Frozen
-- **Methods** — Function signatures with SCP glyphs
+- **Methods** — Function signatures with HL glyphs
 - **Constraints** — Rules the AI must follow
 - **Dependencies** — What this module can import
 - **Forbidden** — What it cannot access (RAG Denial)
@@ -177,11 +177,11 @@ my-todo-app/
 
 ### Why Bottom-Up?
 
-Nexus uses **SCP (Spatial Constraint Protocol)** which means:
+Nexus uses **Holographic Language (HL)** which means:
 - Each module has a **contract** (methods, types, constraints)
 - When you generate module B that depends on module A, the AI only sees A's **frozen contract** — not its full source code
 - This prevents the **Partition Function Explosion** (the AI's attention drowning in distractor tokens — causing confabulation)
-- Orthogonal Uiua embeddings create steep attractor basins free of semantic cross-talk
+- Orthogonal Topo-Categorical operators create steep attractor basins free of semantic cross-talk
 - Build leaves first, then dependents
 
 ### What is RAG Denial?

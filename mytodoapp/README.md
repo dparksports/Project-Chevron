@@ -1,6 +1,6 @@
 # mytodoapp
 
-Built with [Nexus](https://github.com/dparksports/Project-Chevron) — SCP-powered AI development.
+Built with [Nexus](https://github.com/dparksports/Project-Chevron) — HL-powered AI development.
 
 > Uses orthogonal Uiua embeddings to create steep, isolated attractor basins for each module — eliminating semantic cross-talk and preventing confabulation across module boundaries. The Weaver (System 2 rejection sampling) enforces W(G) = 0.
 

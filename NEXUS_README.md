@@ -1,8 +1,8 @@
-# ◬ Nexus — SCP-Powered AI IDE
+# ◬ Nexus — HL-Powered AI IDE
 
 **Build software one module at a time, with AI that never loses context.**
 
-> Nexus turns the [Spatial Constraint Protocol](README.md) into a working AI development environment. Instead of dumping your entire codebase into an AI's context window (causing the Partition Function Z to explode), Nexus decomposes your architecture into isolated modules and generates code for each one independently — using orthogonal embeddings that create steep attractor basins, System 2 rejection sampling (The Weaver), and zero cross-module confabulation.
+> Nexus turns the [Holographic Language v2.0](README.md) into a working AI development environment. Instead of dumping your entire codebase into an AI's context window (causing the Partition Function Z to explode), Nexus decomposes your architecture into isolated modules and generates code for each one independently — using non-polysemic Topo-Categorical operators that create steep attractor basins free of semantic cross-talk, System 2 rejection sampling (The Weaver), and zero cross-module confabulation.
 
 ---
 
@@ -26,7 +26,7 @@ Turn 20:  "Fix the regression"     → ✘✘ Introduces 2 new bugs
 | **Entropy Scoring** | Every context item is scored 0–1 by relevance. Low-signal items are pruned, reducing Z. |
 | **Contract Freezing** | After Weaver verification (W(G) = 0), a module's interface is frozen. Other modules see the frozen snapshot. |
 
-The AI sees ~700 orthogonal tokens per module instead of ~110,000 noisy tokens for the full codebase. **157× compression — restoring the Critical Energy Gap (ΔE > ln(N)).**
+The AI sees ~700 non-polysemic tokens per module instead of ~110,000 noisy tokens for the full codebase. **157× compression — restoring the Critical Energy Gap (ΔE > ln(N)).**
 
 ---
 
@@ -87,7 +87,7 @@ myapp/
 │   ├── todostore.py        ←   class TodoStore with method signatures
 │   ├── todoapi.py          ←   class TodoAPI with method signatures
 │   └── todologger.py       ←   class TodoLogger with method signatures
-├── tests/                  ← Test stubs per module (from SCP contracts)
+├── tests/                  ← Test stubs per module (from HL contracts)
 │   ├── test_todostore.py
 │   ├── test_todoapi.py
 │   └── test_todologger.py
@@ -126,7 +126,7 @@ python -m nexus.cli generate TodoStore --provider openai --key YOUR_OPENAI_KEY
 python -m nexus.cli generate TodoStore --provider ollama --model llama3.1
 ```
 
-Each module is generated in isolation: the AI sees only that module's code, its SCP contract, and the interface contracts of its declared dependencies. **Nothing else.**
+Each module is generated in isolation: the AI sees only that module's code, its HL contract, and the interface contracts of its declared dependencies. **Nothing else.**
 
 ### Step 5: Inspect & Verify
 
@@ -232,7 +232,7 @@ The `nexus.json` file is your architecture definition. Here's a minimal example:
 **Key fields:**
 - `allowed_dependencies` — Which modules this module can see (RAG Denial enforced)
 - `constraints` — Rules the AI must follow when generating code
-- `methods.glyph` — SCP glyph (◬ Origin, Ө Filter, ☾ Fold, ☤ Weave, 𓂀 Witness)
+- `methods.glyph` — HL operator (Hom≅0 Null Morphism, ↦ Morphism, ⊕ Direct Sum, ⊗ Tensor Product, ∂∩∅ Topo Boundary)
 
 ---
 
@@ -252,7 +252,7 @@ The `nexus.json` file is your architecture definition. Here's a minimal example:
 │    Layer 1: Context Kernel                    │
 │    EntropyScorer · ContextPruner · SCPRetriever│
 ├──────────────────────────────────────────────┤
-│    Layer 0: Project Chevron (SCP)             │
+│    Layer 0: Project Chevron (HL)             │
 │    scp_bridge · forge · verifier · glyphs     │
 ├──────────────────────────────────────────────┤
 │    AI Providers (pluggable)                   │
@@ -293,14 +293,14 @@ chevron/
 │       ├── openai_provider.py     #     OpenAI
 │       ├── anthropic_provider.py  #     Anthropic Claude
 │       └── ollama_provider.py     #     Ollama (local)
-├── scp_bridge.py                  # SCP → AI prompt generation
+├── scp_bridge.py                  # HL → AI prompt generation
 ├── forge.py                       # Auto-decompose existing codebases
 ├── chevron/                       # Chevron language runtime
 ├── tests/                         # Test suites
-└── README.md                      # Chevron/SCP documentation
+└── README.md                      # Chevron/HL documentation
 ```
 
 ---
 
-*Built on [Project Chevron](README.md) — the Spatial Constraint Protocol reference implementation.*
+*Built on [Project Chevron](README.md) — the Holographic Language reference implementation.*
 *Paper: [The Partition Function Explosion: An Energy-Based Analysis of Attention Decay](https://github.com/dparksports/dparksports/raw/main/SCP%20II%20-%20Neuro-Symbolic%20Resolution.pdf)*

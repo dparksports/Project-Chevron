@@ -1,6 +1,6 @@
-# ◬ Nexus IDE Architecture in Chevron
+# Nexus IDE Architecture in Chevron v2.0 — Topo-Categorical DSL
 # SCP-Powered AI Development Environment (Self-Specification)
-# 7 SCP modules · 4 layers · 5 glyph primitives
+# 7 SCP modules · 4 layers · 5 Topo-Categorical operators
 #
 # Nexus eats its own dog food — this file defines the IDE's own
 # architecture using the same Chevron language it processes.
@@ -33,7 +33,6 @@ spec EntropyScorer
     constraint "Active module items get 15% boost"
     constraint "Items from unrelated modules get 50% penalty"
     constraint "Conversation items decay exponentially with age"
-    # ◬ [ContextItem] → score_all → [scored items] → 𓂀
 end
 
 spec ContextPruner
@@ -43,7 +42,6 @@ spec ContextPruner
     constraint "Prune expendable items first, then preferred"
     constraint "Output total tokens <= budget"
     constraint "Pure function — deterministic given same inputs"
-    # Ө [scored items] → prune(budget) → [surviving items] → 𓂀
 end
 
 spec SCPRetriever
@@ -55,7 +53,6 @@ spec SCPRetriever
     constraint "Forbidden modules are completely invisible"
     constraint "Global constraints always included"
     constraint "Must not modify architecture spec"
-    # ◬ (module_name, ArchitectureSpec) → retrieve → [ContextItem] → Ө
 end
 
 # ─────────────────────────────────────────────
@@ -68,7 +65,6 @@ spec EditLedger
     constraint "Append-only — never delete or modify past entries"
     constraint "Must persist to disk (JSON) for session recovery"
     constraint "Must track verified vs unverified edits separately"
-    # ◬ EditEntry → record → 𓂀 (append to history)
 end
 
 spec ContractCache
@@ -78,7 +74,6 @@ spec ContractCache
     constraint "Version increments on each freeze"
     constraint "Must persist to disk for session recovery"
     constraint "Invalidation resets frozen status"
-    # ☾ (module, interface) → freeze → ContractSnapshot → 𓂀
 end
 
 spec SessionManager
@@ -89,7 +84,6 @@ spec SessionManager
     constraint "Single source of truth for all session state"
     constraint "Must validate module names against architecture"
     constraint "Must persist full state atomically"
-    # ☤ SessionState ↔ EditLedger + ContractCache → 𓂀
 end
 
 # ─────────────────────────────────────────────
@@ -104,7 +98,6 @@ spec Planner
     constraint "Must respect dependency ordering (topological sort)"
     constraint "Must produce exactly one task per module"
     constraint "Must not invoke AI — decomposition is deterministic"
-    # ◬ request → decompose → [TaskPlan] → ☤
 end
 
 spec Executor
@@ -116,7 +109,6 @@ spec Executor
     constraint "Must extract code from markdown fences if present"
     constraint "Must record all edits to session"
     constraint "One AI call per module — no retry loops"
-    # ☤ TaskPlan → execute(provider) → ExecuteResult → ☾
 end
 
 spec Verifier
@@ -128,7 +120,6 @@ spec Verifier
     constraint "Must check: no global mutable state"
     constraint "Must compare before/after diffs"
     constraint "Must NOT use AI — static analysis only"
-    # 𓂀 ExecuteResult → verify → VerifyResult → 𓂀
 end
 
 spec Conductor
@@ -140,7 +131,6 @@ spec Conductor
     constraint "Must freeze contracts after verified clean edits"
     constraint "Must update session health after every edit"
     constraint "Primary entry point for all AI-assisted development"
-    # ◬ request → ☤ Planner → ☾ Executor → 𓂀 Verifier → 𓂀
 end
 
 # ─────────────────────────────────────────────
@@ -154,29 +144,61 @@ spec AIProvider
     constraint "Must handle rate limiting and retries internally"
     constraint "Must normalize responses to ProviderResponse"
     constraint "Lazy-loaded — import SDK only when first used"
-    # ☤ (prompt, system_instruction) → generate → ProviderResponse → 𓂀
 end
+
+# ─────────────────────────────────────────────
+# Topo-Categorical Constraints
+# ─────────────────────────────────────────────
+
+# Strict Isolation
+Hom(EntropyScorer, Conductor) ≅ 0
+Hom(ContextPruner, Executor) ≅ 0
+Hom(EditLedger, Planner) ≅ 0
+
+# Directed Data Flow (DAG)
+EntropyScorer ↦ SCPRetriever
+ContextPruner ↦ SCPRetriever
+EditLedger ↦ SessionManager
+ContractCache ↦ SessionManager
+SessionManager ↦ Planner
+SCPRetriever ↦ Executor
+SessionManager ↦ Executor
+Planner ↦ Conductor
+Executor ↦ Conductor
+Verifier ↦ Conductor
+
+# Decoupled Coexistence
+EntropyScorer ⊕ ContextPruner
+EditLedger ⊕ ContractCache
+Planner ⊕ Executor
+
+# State Entanglement
+Executor ⊗ AIProvider
+
+# Interface Encapsulation
+∂EntropyScorer ∩ ∂Conductor = ∅
+∂ContextPruner ∩ ∂Executor = ∅
 
 # ─────────────────────────────────────────────
 # Full DAG
 # ─────────────────────────────────────────────
 #
-# ◬ EntropyScorer ─────────────┐
-# Ө ContextPruner ─────────────┤
-#                               ├── ◬ SCPRetriever ── ☾ Executor
-# ◬ EditLedger ────┐            │                        │
-# ☾ ContractCache ─┤            │                        ▼
-#                  ├── ☤ SessionManager ── ◬ Planner   𓂀 Verifier
-#                                              │          │
-#                                              └─── ☤ Conductor
-#                                                      │
-#                                                 ☤ AIProvider
+# EntropyScorer ─────────────┐
+# ContextPruner ─────────────┤
+#                             ├── SCPRetriever ↦ Executor
+# EditLedger ────┐            │                    │
+# ContractCache ─┤            │                    ▼
+#                ├── SessionManager ↦ Planner    Verifier
+#                                        │          │
+#                                        └─── Conductor
+#                                                │
+#                                           AIProvider
 #
-# 𓂀 ProgressWitness observes all, modifies nothing
+# ProgressWitness observes all, modifies nothing
 
 # ─────────────────────────────────────────────
 # Pipeline demo
 # ─────────────────────────────────────────────
 
-# Request arrives → planner decomposes → each module generated in isolation
-◬ (☤ [["Add auth to the API"]]) → Ө {!= "forbidden"} → 𓂀
+# Request arrives → routed through the conductor
+["Add auth to the API"] → {!= "forbidden"}

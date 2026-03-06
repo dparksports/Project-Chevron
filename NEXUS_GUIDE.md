@@ -2,7 +2,7 @@
 
 > **Build software one module at a time, with AI that never loses context.**
 
-Nexus wraps the Spatial Constraint Protocol into a working AI development environment. Instead of dumping your entire codebase into a prompt (causing the Partition Function Z to explode and attention to decay), it decomposes your architecture into isolated modules and generates code for each one independently — using orthogonal Uiua embeddings that create steep attractor basins, with System 2 rejection sampling (The Weaver) and zero cross-module confabulation.
+Nexus wraps the Holographic Language v2.0 into a working AI development environment. Instead of dumping your entire codebase into a prompt (causing the Partition Function Z to explode and attention to decay), it decomposes your architecture into isolated modules and generates code for each one independently — using non-polysemic Topo-Categorical operators that create steep attractor basins, with System 2 rejection sampling (The Weaver) and zero cross-module confabulation.
 
 ---
 
@@ -30,7 +30,7 @@ $env:GEMINI_API_KEY = "your-key"           # Windows PowerShell
 
 ### Option A: Convert an Existing Project
 
-Point Nexus at your existing codebase and it will automatically decompose it into an SCP architecture using AI:
+Point Nexus at your existing codebase and it will automatically decompose it into an HL architecture using AI:
 
 ```bash
 python -m nexus.cli init myapp --from ./path/to/your/project --key YOUR_GEMINI_KEY
@@ -45,7 +45,7 @@ myapp/
 │   ├── userstore.py
 │   ├── authservice.py
 │   └── apirouter.py
-├── tests/                  ← Test stubs per module (from SCP contracts)
+├── tests/                  ← Test stubs per module (from HL contracts)
 │   ├── test_userstore.py
 │   ├── test_authservice.py
 │   └── test_apirouter.py
@@ -110,7 +110,7 @@ Make the CLI support a --verbose flag
 The chat streams real-time progress:
 1. **Planning** — Which modules will be generated
 2. **Generating** — Code appears as it's written (node pulses amber)
-3. **Verification** — SCP Weaver checks contracts (pass ✔ / fail ✘)
+3. **Verification** — HL Weaver checks contracts (pass ✔ / fail ✘)
 4. **Health Update** — Session metrics refresh
 
 **Health Monitor** — Session metrics: total edits, regression rate, clean streak, frozen contracts.
@@ -142,7 +142,7 @@ python -m nexus.cli generate TodoStore --provider openai --key YOUR_OPENAI_KEY
 python -m nexus.cli generate TodoStore --provider ollama --model llama3.1
 ```
 
-Each module is generated in **complete isolation**: the AI sees only that module's code, its SCP contract, and the interface contracts of its declared dependencies. **Nothing else.**
+Each module is generated in **complete isolation**: the AI sees only that module's code, its HL contract, and the interface contracts of its declared dependencies. **Nothing else.**
 
 ### Inspect & Verify
 
@@ -223,7 +223,7 @@ Your architecture definition. Edit this to refine what the AI generates:
 **Key fields:**
 - `allowed_dependencies` — Which modules this module can see (RAG Denial enforced)
 - `constraints` — Rules the AI must follow when generating code
-- `methods.glyph` — SCP glyph (◬ Origin, Ө Filter, ☾ Fold, ☤ Weave, 𓂀 Witness)
+- `methods.glyph` — HL operator (Hom≅0 Null Morphism, ↦ Morphism, ⊕ Direct Sum, ⊗ Tensor Product, ∂∩∅ Topo Boundary)
 
 ---
 
@@ -300,7 +300,7 @@ python tests/test_conductor.py           # 15 tests — planner, executor, verif
 
 ## Further Reading
 
-- [CLI & Forge Guide](CLI_GUIDE.md) — Headless workflow using Forge + SCP Bridge directly
+- [CLI & Forge Guide](CLI_GUIDE.md) — Headless workflow using Forge + HL Bridge directly
 - [Dashboard Guide](DASHBOARD_README.md) — Detailed dashboard documentation
-- [README.md](README.md) — Full SCP theory and research background
+- [README.md](README.md) — Full HL theory and research background
 - [Research Paper (PDF)](https://github.com/dparksports/dparksports/raw/main/SCP%20II%20-%20Neuro-Symbolic%20Resolution.pdf) — The Partition Function Explosion: An Energy-Based Analysis of Attention Decay

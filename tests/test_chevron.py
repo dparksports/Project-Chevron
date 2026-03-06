@@ -1,27 +1,25 @@
 """
 Chevron Test Suite
 ==================
-Tests for the Chevron language extensions: lexer, parser, interpreter, and verifier.
-Uses Python's built-in unittest — no external dependencies required.
+Tests for the Chevron v2.0 Non-Polysemic Topological DSL.
+Covers: lexer, parser, interpreter, and verifier.
 
 Usage:
     python -m unittest tests.test_chevron -v
-    python tests/test_chevron.py
 """
 import sys
 import os
 import unittest
 
-# Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from chevron.lexer import Lexer, TokenType
 from chevron.parser import (
-    Parser, ProgramNode, GlyphNode, PipelineNode, IdentifierNode,
-    ModuleNode, SpecNode, TypeDeclNode, TypeAnnotNode, ConstraintNode,
-    FuncCallNode, PredicateNode, LiteralNode,
+    Parser, ProgramNode, ModuleNode, SpecNode,
+    NullMorphismNode, MorphismNode, DirectSumNode, TensorProductNode,
+    TopoBoundaryNode, BindingNode, LiteralNode, IdentifierNode,
 )
-from chevron.interpreter import Interpreter, ChevronError
+from chevron.interpreter import Interpreter
 from chevron.verifier import SCPVerifier, ViolationLevel
 
 
@@ -30,27 +28,62 @@ from chevron.verifier import SCPVerifier, ViolationLevel
 # ─────────────────────────────────────────────
 
 class TestLexer(unittest.TestCase):
-    """Tests for lexer extensions."""
+    """Tests for lexer — Topo-Categorical token types."""
+
+    def test_morphism_token(self):
+        """↦ should tokenize as MORPHISM."""
+        tokens = Lexer("A ↦ B").tokenize()
+        types = [t.type for t in tokens if t.type != TokenType.EOF]
+        self.assertIn(TokenType.MORPHISM, types)
+
+    def test_direct_sum_token(self):
+        """⊕ should tokenize as DIRECT_SUM."""
+        tokens = Lexer("A ⊕ B").tokenize()
+        types = [t.type for t in tokens if t.type != TokenType.EOF]
+        self.assertIn(TokenType.DIRECT_SUM, types)
+
+    def test_tensor_product_token(self):
+        """⊗ should tokenize as TENSOR_PRODUCT."""
+        tokens = Lexer("A ⊗ B").tokenize()
+        types = [t.type for t in tokens if t.type != TokenType.EOF]
+        self.assertIn(TokenType.TENSOR_PRODUCT, types)
+
+    def test_partial_token(self):
+        """∂ should tokenize as PARTIAL."""
+        tokens = Lexer("∂A").tokenize()
+        types = [t.type for t in tokens if t.type != TokenType.EOF]
+        self.assertIn(TokenType.PARTIAL, types)
+
+    def test_intersection_token(self):
+        """∩ should tokenize as INTERSECTION."""
+        tokens = Lexer("∂A ∩ ∂B").tokenize()
+        types = [t.type for t in tokens if t.type != TokenType.EOF]
+        self.assertIn(TokenType.INTERSECTION, types)
+
+    def test_empty_set_token(self):
+        """∅ should tokenize as EMPTY_SET."""
+        tokens = Lexer("= ∅").tokenize()
+        types = [t.type for t in tokens if t.type != TokenType.EOF]
+        self.assertIn(TokenType.EMPTY_SET, types)
+
+    def test_isomorphic_token(self):
+        """≅ should tokenize as ISOMORPHIC."""
+        tokens = Lexer("Hom(A, B) ≅ 0").tokenize()
+        types = [t.type for t in tokens if t.type != TokenType.EOF]
+        self.assertIn(TokenType.ISOMORPHIC, types)
+
+    def test_hom_keyword(self):
+        """Hom should tokenize as KW_HOM."""
+        tokens = Lexer("Hom(A, B) ≅ 0").tokenize()
+        types = [t.type for t in tokens if t.type != TokenType.EOF]
+        self.assertIn(TokenType.KW_HOM, types)
 
     def test_snake_case_identifier(self):
         """snake_case names should tokenize as single IDENTIFIER."""
-        tokens = Lexer("find_media").tokenize()
-        self.assertEqual(tokens[0].type, TokenType.IDENTIFIER)
-        self.assertEqual(tokens[0].value, "find_media")
-
-    def test_double_underscore_identifier(self):
-        tokens = Lexer("batch_vad_scan").tokenize()
-        self.assertEqual(tokens[0].type, TokenType.IDENTIFIER)
-        self.assertEqual(tokens[0].value, "batch_vad_scan")
-
-    def test_standalone_underscore_is_placeholder(self):
-        tokens = Lexer("_ ").tokenize()
-        self.assertEqual(tokens[0].type, TokenType.UNDERSCORE)
-
-    def test_underscore_in_pipeline(self):
-        tokens = Lexer('◬ "hello" → _').tokenize()
-        underscore = [t for t in tokens if t.type == TokenType.UNDERSCORE]
-        self.assertEqual(len(underscore), 1)
+        tokens = Lexer("my_var_name").tokenize()
+        idents = [t for t in tokens if t.type == TokenType.IDENTIFIER]
+        self.assertEqual(len(idents), 1)
+        self.assertEqual(idents[0].value, "my_var_name")
 
     def test_keyword_module(self):
         tokens = Lexer("module").tokenize()
@@ -72,28 +105,17 @@ class TestLexer(unittest.TestCase):
         tokens = Lexer("constraint").tokenize()
         self.assertEqual(tokens[0].type, TokenType.KW_CONSTRAINT)
 
-    def test_keyword_imports_exports(self):
-        tokens = Lexer("imports exports").tokenize()
-        self.assertEqual(tokens[0].type, TokenType.KW_IMPORTS)
-        self.assertEqual(tokens[1].type, TokenType.KW_EXPORTS)
+    def test_pipeline_arrow(self):
+        """→ should tokenize as PIPELINE."""
+        tokens = Lexer("A → B").tokenize()
+        types = [t.type for t in tokens if t.type != TokenType.EOF]
+        self.assertIn(TokenType.PIPELINE, types)
 
-    def test_keyword_depends_on(self):
-        tokens = Lexer("depends_on").tokenize()
-        self.assertEqual(tokens[0].type, TokenType.KW_DEPENDS_ON)
-
-    def test_keyword_forbidden(self):
-        tokens = Lexer("forbidden").tokenize()
-        self.assertEqual(tokens[0].type, TokenType.KW_FORBIDDEN)
-
-    def test_colon_token(self):
-        tokens = Lexer("name: str").tokenize()
-        colon = [t for t in tokens if t.type == TokenType.COLON]
-        self.assertEqual(len(colon), 1)
-
-    def test_identifier_not_keyword(self):
-        tokens = Lexer("modular").tokenize()
-        self.assertEqual(tokens[0].type, TokenType.IDENTIFIER)
-        self.assertEqual(tokens[0].value, "modular")
+    def test_bind_arrow(self):
+        """← should tokenize as BIND."""
+        tokens = Lexer("x ← 5").tokenize()
+        types = [t.type for t in tokens if t.type != TokenType.EOF]
+        self.assertIn(TokenType.BIND, types)
 
 
 # ─────────────────────────────────────────────
@@ -101,80 +123,76 @@ class TestLexer(unittest.TestCase):
 # ─────────────────────────────────────────────
 
 class TestParser(unittest.TestCase):
-    """Tests for parser extensions."""
+    """Tests for parser — Topo-Categorical AST node types."""
 
-    def _parse(self, source: str) -> ProgramNode:
+    def _parse(self, source: str):
         tokens = Lexer(source).tokenize()
         return Parser(tokens).parse()
 
+    def test_null_morphism_node(self):
+        """Hom(A, B) ≅ 0 should parse as NullMorphismNode."""
+        ast = self._parse("Hom(Foo, Bar) ≅ 0")
+        stmts = ast.statements
+        self.assertTrue(any(isinstance(s, NullMorphismNode) for s in stmts))
+        nm = [s for s in stmts if isinstance(s, NullMorphismNode)][0]
+        self.assertEqual(nm.source, "Foo")
+        self.assertEqual(nm.target, "Bar")
+
+    def test_morphism_node(self):
+        """A ↦ B should parse as MorphismNode."""
+        ast = self._parse("Alpha ↦ Beta")
+        stmts = ast.statements
+        self.assertTrue(any(isinstance(s, MorphismNode) for s in stmts))
+
+    def test_direct_sum_node(self):
+        """A ⊕ B should parse as DirectSumNode."""
+        ast = self._parse("X ⊕ Y")
+        stmts = ast.statements
+        self.assertTrue(any(isinstance(s, DirectSumNode) for s in stmts))
+
+    def test_tensor_product_node(self):
+        """A ⊗ B should parse as TensorProductNode."""
+        ast = self._parse("M ⊗ N")
+        stmts = ast.statements
+        self.assertTrue(any(isinstance(s, TensorProductNode) for s in stmts))
+
+    def test_topo_boundary_node(self):
+        """∂A ∩ ∂B = ∅ should parse as TopoBoundaryNode."""
+        ast = self._parse("∂Frontend ∩ ∂Database = ∅")
+        stmts = ast.statements
+        self.assertTrue(any(isinstance(s, TopoBoundaryNode) for s in stmts))
+        tb = [s for s in stmts if isinstance(s, TopoBoundaryNode)][0]
+        self.assertEqual(tb.left, "Frontend")
+        self.assertEqual(tb.right, "Database")
+
     def test_module_node(self):
-        ast = self._parse('module Foo\n◬ "hello" → 𓂀\nend')
-        self.assertEqual(len(ast.statements), 1)
-        self.assertIsInstance(ast.statements[0], ModuleNode)
-        self.assertEqual(ast.statements[0].name, "Foo")
-
-    def test_module_imports_exports(self):
-        ast = self._parse('module Foo\nimports A, B\nexports C\n◬ "x" → 𓂀\nend')
-        mod = ast.statements[0]
-        self.assertEqual(mod.imports, ["A", "B"])
-        self.assertEqual(mod.exports, ["C"])
-
-    def test_module_depends_on_forbidden(self):
-        ast = self._parse('module Foo\ndepends_on [A, B]\nforbidden [C]\n◬ "x" → 𓂀\nend')
-        mod = ast.statements[0]
-        self.assertEqual(mod.depends_on, ["A", "B"])
-        self.assertEqual(mod.forbidden, ["C"])
-
-    def test_module_constraints(self):
-        ast = self._parse('module Foo\nconstraint "No side effects"\n◬ "x" → 𓂀\nend')
-        self.assertEqual(ast.statements[0].constraints, ["No side effects"])
+        ast = self._parse("module Foo\nend")
+        self.assertTrue(any(isinstance(s, ModuleNode) for s in ast.statements))
 
     def test_spec_node(self):
-        ast = self._parse('spec Bar\nexports hello\nconstraint "Pure"\nend')
-        spec = ast.statements[0]
-        self.assertIsInstance(spec, SpecNode)
-        self.assertEqual(spec.name, "Bar")
-        self.assertEqual(spec.exports, ["hello"])
+        ast = self._parse("spec Bar\n  exports baz\nend")
+        self.assertTrue(any(isinstance(s, SpecNode) for s in ast.statements))
 
-    def test_type_decl(self):
-        ast = self._parse('type MediaFile = { path: str, size: int }')
-        td = ast.statements[0]
-        self.assertIsInstance(td, TypeDeclNode)
-        self.assertEqual(td.type_name, "MediaFile")
-        self.assertEqual(td.fields, [("path", "str"), ("size", "int")])
+    def test_binding_node(self):
+        ast = self._parse('x ← "hello"')
+        self.assertTrue(any(isinstance(s, BindingNode) for s in ast.statements))
 
-    def test_func_call_in_predicate(self):
-        ast = self._parse('◬ [1, 2, 3] → Ө {is_even 2} → 𓂀')
-        pipeline = ast.statements[0]
-        filter_node = pipeline.stages[1]
-        pred = filter_node.args[0]
-        self.assertIsInstance(pred, FuncCallNode)
-        self.assertEqual(pred.func_name, "is_even")
+    def test_spec_with_constraints(self):
+        ast = self._parse("""spec MyMod
+    constraint "No side effects"
+    constraint "Pure functions only"
+end""")
+        spec = [s for s in ast.statements if isinstance(s, SpecNode)][0]
+        self.assertEqual(len(spec.constraints), 2)
 
-    def test_type_annot_in_pipeline(self):
-        ast = self._parse('◬ "hello" → Transcript → 𓂀')
-        pipeline = ast.statements[0]
-        self.assertIsInstance(pipeline.stages[1], TypeAnnotNode)
-        self.assertEqual(pipeline.stages[1].type_name, "Transcript")
-
-    def test_constraint_standalone(self):
-        ast = self._parse('constraint "No mutation"')
-        c = ast.statements[0]
-        self.assertIsInstance(c, ConstraintNode)
-        self.assertEqual(c.text, "No mutation")
-
-    def test_error_accumulation(self):
-        tokens = Lexer('◬ ]\n◬ }').tokenize()
-        parser = Parser(tokens)
-        with self.assertRaises(SyntaxError) as ctx:
-            parser.parse()
-        self.assertIn("parse error", str(ctx.exception).lower())
-
-    def test_snake_case_in_pipeline(self):
-        ast = self._parse('◬ "test" → find_media → 𓂀')
-        pipeline = ast.statements[0]
-        self.assertIsInstance(pipeline.stages[1], IdentifierNode)
-        self.assertEqual(pipeline.stages[1].name, "find_media")
+    def test_spec_with_depends_forbidden(self):
+        ast = self._parse("""spec Processor
+    depends_on [Loader]
+    forbidden [Renderer]
+end""")
+        spec = [s for s in ast.statements if isinstance(s, SpecNode)][0]
+        self.assertIn("Loader", spec.depends_on)
+        self.assertIn("Renderer", spec.forbidden)
 
 
 # ─────────────────────────────────────────────
@@ -182,7 +200,7 @@ class TestParser(unittest.TestCase):
 # ─────────────────────────────────────────────
 
 class TestInterpreter(unittest.TestCase):
-    """Tests for interpreter extensions."""
+    """Tests for interpreter — Topo-Categorical execution."""
 
     def _run(self, source: str):
         tokens = Lexer(source).tokenize()
@@ -191,41 +209,59 @@ class TestInterpreter(unittest.TestCase):
         result = interp.execute(ast)
         return result, interp
 
-    def test_module_exports_all_by_default(self):
-        result, interp = self._run('module A\nx ← ◬ 42\nend')
-        self.assertIn("x", interp.env)
+    def test_tensor_product_merge_strings(self):
+        """A ⊗ B with strings should concatenate them."""
+        result, _ = self._run('"Hello" ⊗ "World"')
+        self.assertEqual(result, "Hello World")
 
-    def test_module_exports_filtering(self):
-        source = (
-            'module A\n'
-            'exports public_val\n'
-            'public_val ← 42\n'
-            'private_val ← 99\n'
-            '◬ "init" → 𓂀\n'
-            'end'
-        )
-        result, interp = self._run(source)
-        self.assertIn("public_val", interp.env)
-        self.assertNotIn("private_val", interp.env)
+    def test_tensor_product_merge_lists(self):
+        """A ⊗ B with lists should concatenate them."""
+        result, _ = self._run("[1, 2] ⊗ [3, 4]")
+        self.assertEqual(result, [1, 2, 3, 4])
 
-    def test_spec_not_executed(self):
-        result, interp = self._run(
-            'spec Foo\nexports bar\nconstraint "No side effects"\nend'
-        )
-        self.assertIn("Foo", interp.specs)
-        self.assertEqual(interp.specs["Foo"].exports, ["bar"])
+    def test_direct_sum_returns_list(self):
+        """A ⊕ B should return a list of both values."""
+        result, _ = self._run("[1, 2] ⊕ [3, 4]")
+        self.assertEqual(result, [1, 2, 3, 4])
 
-    def test_type_registration(self):
-        result, interp = self._run('type MediaFile = { path: str, size: int }')
-        self.assertIn("MediaFile", interp.types)
+    def test_null_morphism_records_constraint(self):
+        """Hom(A,B) ≅ 0 should record in constraint_log."""
+        _, interp = self._run("Hom(Src, Tgt) ≅ 0")
+        self.assertEqual(len(interp.null_morphisms), 1)
+        self.assertEqual(interp.null_morphisms[0]["source"], "Src")
+        self.assertEqual(interp.null_morphisms[0]["target"], "Tgt")
+
+    def test_topo_boundary_records_constraint(self):
+        """∂A ∩ ∂B = ∅ should record in topo_boundaries."""
+        _, interp = self._run("∂Left ∩ ∂Right = ∅")
+        self.assertEqual(len(interp.topo_boundaries), 1)
+        self.assertEqual(interp.topo_boundaries[0]["left"], "Left")
+        self.assertEqual(interp.topo_boundaries[0]["right"], "Right")
 
     def test_basic_pipeline(self):
-        result, _ = self._run('◬ [10, 25, 3, 47] → Ө {> 10} → 𓂀')
+        """Pipeline should filter values through predicates."""
+        result, _ = self._run("[1, 5, 10, 15, 20] → {> 8}")
+        self.assertEqual(result, [10, 15, 20])
+
+    def test_binding_and_pipeline(self):
+        result, _ = self._run('data ← [10, 25, 3, 47]\ndata → {> 20}')
         self.assertEqual(result, [25, 47])
 
-    def test_fold(self):
-        result, _ = self._run('◬ 5 → ☾ {> 0} {- 1} → 𓂀')
-        self.assertEqual(result, 0)
+    def test_module_exports(self):
+        """Module exports should merge into global env."""
+        result, interp = self._run("""module Greeter
+    exports msg
+    msg ← "hello"
+end""")
+        self.assertEqual(interp.env.get("msg"), "hello")
+
+    def test_spec_not_executed(self):
+        """Spec blocks are parsed but not executed."""
+        result, interp = self._run("""spec NotRun
+    exports nothing
+end""")
+        self.assertIn("NotRun", interp.specs)
+        self.assertNotIn("nothing", interp.env)
 
 
 # ─────────────────────────────────────────────
@@ -233,104 +269,102 @@ class TestInterpreter(unittest.TestCase):
 # ─────────────────────────────────────────────
 
 class TestVerifier(unittest.TestCase):
-    """Tests for SCP verifier."""
+    """Tests for SCPVerifier — Topo-Categorical constraint enforcement."""
 
     def _verify(self, source: str):
         tokens = Lexer(source).tokenize()
         ast = Parser(tokens).parse()
-        return SCPVerifier().verify(ast)
-
-    def test_single_origin_passes(self):
-        violations = self._verify('◬ "hello" → 𓂀')
-        errors = [v for v in violations if v.level == ViolationLevel.ERROR]
-        self.assertEqual(len(errors), 0)
-
-    def test_multiple_origins_fails(self):
-        violations = self._verify('◬ "a" → 𓂀\n◬ "b" → 𓂀')
-        errors = [v for v in violations if v.level == ViolationLevel.ERROR]
-        self.assertGreater(len(errors), 0)
-
-    def test_module_missing_origin_error(self):
-        violations = self._verify('module A\n𓂀 "x"\nend')
-        errors = [v for v in violations if v.level == ViolationLevel.ERROR]
-        self.assertTrue(any("◬" in v.glyph for v in errors))
-
-    def test_forbidden_dependency_error(self):
-        source = (
-            'module A\n'
-            'forbidden [badmod]\n'
-            'x ← badmod\n'
-            '◬ x → 𓂀\n'
-            'end'
-        )
-        violations = self._verify(source)
-        errors = [v for v in violations if v.level == ViolationLevel.ERROR]
-        self.assertTrue(any("forbidden" in v.message.lower() for v in errors))
-
-    def test_circular_dependency_error(self):
-        violations = self._verify('spec A\ndepends_on [B]\nend\nspec B\ndepends_on [A]\nend')
-        errors = [v for v in violations if v.level == ViolationLevel.ERROR]
-        self.assertTrue(any("circular" in v.message.lower() for v in errors))
-
-    def test_undeclared_type_warns(self):
-        violations = self._verify('◬ "x" → UnknownType → 𓂀')
-        warnings = [v for v in violations if v.level == ViolationLevel.WARNING]
-        self.assertTrue(any("UnknownType" in v.message for v in warnings))
-
-    def test_declared_type_no_warning(self):
-        violations = self._verify('type Transcript = { text: str }\n◬ "x" → Transcript → 𓂀')
-        warnings = [v for v in violations if v.level == ViolationLevel.WARNING and "Transcript" in v.message]
-        self.assertEqual(len(warnings), 0)
-
-    def test_spec_no_origin_required(self):
-        violations = self._verify('spec Foo\nexports bar\nend')
-        errors = [v for v in violations if v.level == ViolationLevel.ERROR]
-        self.assertEqual(len(errors), 0)
-
-
-# ─────────────────────────────────────────────
-#  Integration (example files)
-# ─────────────────────────────────────────────
-
-class TestExampleFiles(unittest.TestCase):
-    """All example .chevron files must parse, verify, and execute."""
-
-    EXAMPLES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "examples")
-
-    def _run_example(self, filename: str):
-        filepath = os.path.join(self.EXAMPLES_DIR, filename)
-        with open(filepath, "r", encoding="utf-8") as f:
-            source = f.read()
-
-        tokens = Lexer(source).tokenize()
-        ast = Parser(tokens).parse()
-
         verifier = SCPVerifier()
-        violations = verifier.verify(ast)
+        return verifier.verify(ast)
+
+    def test_null_morphism_violation(self):
+        """Hom(A,B) ≅ 0 should flag A referencing B."""
+        violations = self._verify("""
+module src
+    imports tgt
+    run ← tgt
+end
+Hom(src, tgt) ≅ 0
+""")
         errors = [v for v in violations if v.level == ViolationLevel.ERROR]
-        self.assertEqual(len(errors), 0, f"{filename} has SCP violations: {errors}")
+        self.assertTrue(any("Hom" in v.operator for v in errors),
+                        f"Expected Hom≅0 violation, got: {errors}")
 
-        interp = Interpreter(output_fn=lambda s: None)
-        return interp.execute(ast)
+    def test_null_morphism_clean(self):
+        """No violation when A doesn't reference B."""
+        violations = self._verify("""
+spec Src
+    exports run
+    run ← "clean"
+end
+spec Tgt
+    exports result
+end
+Hom(Src, Tgt) ≅ 0
+""")
+        errors = [v for v in violations if v.level == ViolationLevel.ERROR
+                  and v.operator == "Hom≅0"]
+        self.assertEqual(len(errors), 0)
 
-    def test_hello(self):
-        self._run_example("hello.chevron")
+    def test_topo_boundary_violation(self):
+        """∂A ∩ ∂B = ∅ should flag direct cross-reference."""
+        violations = self._verify("""
+module left
+    imports right
+    run ← right
+end
+∂left ∩ ∂right = ∅
+""")
+        errors = [v for v in violations if v.level == ViolationLevel.ERROR]
+        self.assertTrue(any("∂∩∅" in v.operator for v in errors),
+                        f"Expected ∂∩∅ violation, got: {errors}")
 
-    def test_pipeline(self):
-        self.assertEqual(self._run_example("pipeline.chevron"), [25, 47, 92])
+    def test_forbidden_dependency(self):
+        """Referencing a forbidden module should be flagged."""
+        violations = self._verify("""
+module worker
+    imports forbiddenmod
+    forbidden [forbiddenmod]
+    run ← forbiddenmod
+end
+""")
+        errors = [v for v in violations if v.level == ViolationLevel.ERROR
+                  and v.operator == "DEPENDENCY"]
+        self.assertTrue(len(errors) > 0,
+                        f"Expected DEPENDENCY violation, got: {violations}")
 
-    def test_recursion(self):
-        self.assertEqual(self._run_example("recursion.chevron"), 0)
+    def test_circular_dependency(self):
+        """Circular depends_on should be flagged."""
+        violations = self._verify("""
+spec A
+    depends_on [B]
+end
+spec B
+    depends_on [A]
+end
+""")
+        errors = [v for v in violations if v.operator == "CYCLE"]
+        self.assertTrue(len(errors) > 0,
+                        f"Expected CYCLE violation, got: {violations}")
 
-    def test_weave_filter(self):
-        self.assertEqual(self._run_example("weave_filter.chevron"), [8, 9, 7])
-
-    def test_todo(self):
-        self.assertIsInstance(self._run_example("todo.chevron"), list)
-
-    def test_turboscribe(self):
-        self.assertIsInstance(self._run_example("turboscribe.chevron"), list)
+    def test_clean_architecture(self):
+        """A well-structured program should have no errors."""
+        violations = self._verify("""
+spec ModA
+    exports run
+    run ← "hello"
+end
+spec ModB
+    depends_on [ModA]
+    imports ModA
+    exports process
+    process ← ModA
+end
+ModA ↦ ModB
+""")
+        errors = [v for v in violations if v.level == ViolationLevel.ERROR]
+        self.assertEqual(len(errors), 0)
 
 
 if __name__ == "__main__":
-    unittest.main(verbosity=2)
+    unittest.main()

@@ -1,16 +1,16 @@
 """
-SCP Bridge — Chevron → AI Agent Interface (High-Density Semantic Prompting)
+SCP Bridge — Chevron → AI Agent Interface (Topo-Categorical Orthogonality)
 ===========================================================================
 Translates Chevron architecture specifications into constrained
 system prompts for AI agents (Gemini, GPT, Claude, etc.).
 
 Mechanism:
-    SCP uses High-Density Semantic Prompting. The glyphs serve as
-    high-information-density tokens in the prompt, not as direct latent
-    space coordinates. The AI reads glyph definitions as text and follows
-    the constraints via in-context learning. This is prompt engineering
-    with formally structured, contract-scoped context — not direct
-    weight manipulation or embedding injection.
+    SCP uses Topo-Categorical Orthogonality. The mathematical operators serve as
+    non-polysemic, arXiv-anchored tokens in the prompt, leveraging pristine
+    embedding coordinates in the LLM's latent space. The AI reads operator
+    definitions as text and follows the constraints via in-context learning.
+    This is prompt engineering with formally structured, contract-scoped
+    context — not direct weight manipulation or embedding injection.
 
 Usage:
     # Define your architecture in a .chevron spec
@@ -30,7 +30,7 @@ from typing import Any
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from chevron.glyphs import GLYPH_REGISTRY, GlyphType
+from chevron.glyphs import OPERATOR_REGISTRY, OperatorType
 from chevron.code_verifier import CodeVerifier, CodeViolation, SeverityLevel
 
 
@@ -44,7 +44,7 @@ class InterfaceMethod:
     name: str
     inputs: list[str]
     output: str
-    glyph: str  # Which primitive governs this method
+    operator: str  # Which Topo-Categorical operator governs this method
     constraint: str = ""
 
 
@@ -70,7 +70,7 @@ class ArchitectureSpec:
 #  Pre-built Architecture Templates
 # ─────────────────────────────────────────────────────────────
 
-# These demonstrate how Chevron glyphs map to real module constraints
+# These demonstrate how Topo-Categorical operators map to real module constraints
 
 TEMPLATES = {
     "todo_app": ArchitectureSpec(
@@ -180,10 +180,10 @@ class SCPBridge:
 
     Translates an SCP architecture specification into AI-constraining
     system prompts. Compresses architectural context by expressing
-    module contracts as dense Chevron primitives (glyphs) rather than
+    module contracts as dense Topo-Categorical operators rather than
     verbose natural language descriptions.
 
-    The glyphs are read by the AI as in-context instructions — this is
+    The operators are read by the AI as in-context instructions — this is
     structured prompt engineering, not direct latent space manipulation.
 
     Usage:
@@ -236,8 +236,8 @@ class SCPBridge:
         # Forbidden zones
         sections.append(self._forbidden_zones(module))
 
-        # Glyph constraints
-        sections.append(self._glyph_constraints(module))
+        # Operator constraints
+        sections.append(self._operator_constraints(module))
 
         # Global constraints
         sections.append(self._global_constraints())
@@ -290,8 +290,8 @@ Check for:
 - [ ] No undeclared PROJECT dependencies (stdlib imports are fine)
 - [ ] All inter-module communication goes through declared interfaces
 
-### 5. Glyph Contract Compliance
-{self._format_glyph_checks(module)}
+### 5. Operator Contract Compliance
+{self._format_operator_checks(module)}
 
 ## Output Format:
 - PASS: All checks satisfied. W(G) = 0.
@@ -351,8 +351,8 @@ You are generating pytest tests for the **{module.name}** module.
 Allowed project dependencies: {allowed_deps}
 The tests must verify that the module does NOT import any forbidden project modules.
 
-## Glyph Contract
-{self._format_glyph_checks(module)}
+## Operator Contract
+{self._format_operator_checks(module)}
 
 ## Code Under Test
 ```{language}
@@ -453,7 +453,7 @@ Use descriptive test names that reference the SCP contract.
                 "properties": {
                     "docstring": {
                         "type": "string",
-                        "description": f"Docstring referencing glyph {m.glyph}: {m.constraint}"
+                        "description": f"Docstring referencing operator {m.operator}: {m.constraint}"
                     },
                     "parameters": {
                         "type": "object",
@@ -533,7 +533,7 @@ You must implement the **{module.name}** module in **{language}**.
 1. You may ONLY implement the {module.name} module
 2. You may ONLY call interfaces of: {', '.join(module.allowed_dependencies) or '(no dependencies — fully isolated)'}
 3. You must NOT access, import, or reference any other PROJECT module's implementation
-4. You must follow all glyph contracts below — each method is governed by a Chevron primitive
+4. You must follow all operator contracts below — each method is governed by a Topo-Categorical primitive
 5. Standard library imports (typing, dataclasses, enum, etc.) are ALWAYS allowed — they are NOT project dependencies"""
 
     def _module_contract(self, module: ModuleSpec, language: str) -> str:
@@ -549,14 +549,14 @@ You must implement the **{module.name}** module in **{language}**.
     def _format_methods(self, module: ModuleSpec, language: str) -> str:
         lines = []
         for m in module.methods:
-            glyph_info = GLYPH_REGISTRY.get(m.glyph, None)
-            glyph_name = glyph_info.name if glyph_info else m.glyph
+            op_info = OPERATOR_REGISTRY.get(m.operator, None)
+            op_name = op_info.name if op_info else m.operator
             inputs = ", ".join(m.inputs)
-            lines.append(f"- `{m.glyph}` **{m.name}**({inputs}) → {m.output}")
-            lines.append(f"  - Glyph: {glyph_name} — {m.constraint}")
-            if glyph_info:
-                lines.append(f"  - Contract: {glyph_info.contract}")
-                lines.append(f"  - Must NOT: {glyph_info.constraint}")
+            lines.append(f"- `{m.operator}` **{m.name}**({inputs}) → {m.output}")
+            lines.append(f"  - Operator: {op_name} — {m.constraint}")
+            if op_info:
+                lines.append(f"  - Contract: {op_info.contract}")
+                lines.append(f"  - Must NOT: {op_info.constraint}")
         return "\n".join(lines)
 
     def _dependency_interfaces(self, module: ModuleSpec, language: str) -> str:
@@ -598,18 +598,18 @@ This module is fully isolated. It may not import or reference any other module."
 
         return "\n".join(lines)
 
-    def _glyph_constraints(self, module: ModuleSpec) -> str:
-        lines = ["## ◬ Glyph Semantic Contracts",
-                  "Each method is governed by a Chevron primitive. You MUST follow its contract:",
+    def _operator_constraints(self, module: ModuleSpec) -> str:
+        lines = ["## ↦ Operator Semantic Contracts",
+                  "Each method is governed by a Topo-Categorical operator. You MUST follow its contract:",
                   ""]
 
-        used_glyphs = set()
+        used_operators = set()
         for m in module.methods:
-            if m.glyph not in used_glyphs:
-                used_glyphs.add(m.glyph)
-                info = GLYPH_REGISTRY.get(m.glyph)
+            if m.operator not in used_operators:
+                used_operators.add(m.operator)
+                info = OPERATOR_REGISTRY.get(m.operator)
                 if info:
-                    lines.append(f"### {m.glyph} {info.name}")
+                    lines.append(f"### {m.operator} {info.name}")
                     lines.append(f"- **Intent:** {info.intent}")
                     lines.append(f"- **Contract:** {info.contract}")
                     lines.append(f"- **Constraint:** {info.constraint}")
@@ -627,17 +627,17 @@ This module is fully isolated. It may not import or reference any other module."
         return f"""## ✅ Output Requirements
 1. Implement `{module.name}` as a single {language} module/file
 2. Include type hints for all method signatures
-3. Include docstrings referencing the governing glyph (e.g., "☤ Weaves task into store")
+3. Include docstrings referencing the governing operator (e.g., "↦ Morphism data flow")
 4. Include no imports from forbidden modules
-5. Mark each method with its glyph in a comment: `# ◬ Origin`, `# ☤ Weaver`, etc.
+5. Mark each method with its operator in a comment: `# ↦ Morphism`, `# ⊗ Tensor Product`, etc.
 6. All inter-module calls must go through the declared interface only"""
 
-    def _format_glyph_checks(self, module: ModuleSpec) -> str:
+    def _format_operator_checks(self, module: ModuleSpec) -> str:
         lines = []
         for m in module.methods:
-            info = GLYPH_REGISTRY.get(m.glyph)
+            info = OPERATOR_REGISTRY.get(m.operator)
             if info:
-                lines.append(f"- [ ] `{m.name}` governed by {m.glyph} ({info.name}): {info.constraint}")
+                lines.append(f"- [ ] `{m.name}` governed by {m.operator} ({info.name}): {info.constraint}")
         return "\n".join(lines)
 
 

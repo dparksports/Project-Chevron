@@ -1,8 +1,8 @@
-# CLI Guide — Forge + SCP Bridge (Headless Workflow)
+# CLI Guide — Forge + HL Bridge (Headless Workflow)
 
 > **No dashboard needed. Point the CLI at your project, generate code, verify, ship.**
 
-This guide covers the headless workflow using the standalone Forge and SCP Bridge tools. For the visual IDE with dashboard, see the [Nexus Guide](NEXUS_GUIDE.md).
+This guide covers the headless workflow using the standalone Forge and HL Bridge tools. For the visual IDE with dashboard, see the [Nexus Guide](NEXUS_GUIDE.md).
 
 ---
 
@@ -27,7 +27,7 @@ $env:GEMINI_API_KEY = "your-key-here"           # Windows PowerShell
 
 ## Step 1: Decompose Your Codebase
 
-The Forge scans any existing codebase and automatically decomposes it into an SCP architecture using Gemini.
+The Forge scans any existing codebase and automatically decomposes it into an HL architecture using Gemini.
 
 ```bash
 # Point it at your project — that's it
@@ -71,12 +71,12 @@ $ python forge.py nexus/
   Model: gemini-3-pro-preview
   Sending 17 files (45,469 tokens) for analysis...
 
-☾ ─── Step 3: Generating SCP spec files ───
+☾ ─── Step 3: Generating HL spec files ───
 
-𓂀  SCP Init Complete!
+𓂀  HL Init Complete!
 
   Generated files:
-    📄 nexus_scp.py                   Python SCP spec (runnable)
+    📄 nexus_scp.py                   Python HL spec (runnable)
     📄 nexus_architecture.chevron     Chevron architecture spec
     📄 nexus_decomposition.json       Raw decomposition JSON
 
@@ -168,7 +168,7 @@ Uses Python's `ast` module — no AI involved, no confabulation possible:
 violations = bridge.verify_generated_code("TodoStore", code)
 
 if not violations:
-    print("✔ W(G) = 0 — code passes all SCP checks")
+    print("✔ W(G) = 0 — code passes all HL checks")
 else:
     for v in violations:
         print(v)
@@ -177,7 +177,7 @@ else:
 Checks:
 - No global mutable state
 - No forbidden imports (only declared dependencies allowed)
-- Side-effect freedom for Filter (Ө) and Witness (𓂀) methods
+- Topo-Categorical constraint conformance (isolation, directed flow, boundaries)
 - Interface conformance (correct methods, correct signatures)
 
 ### AI-Powered Verification
@@ -301,7 +301,7 @@ response = client.models.generate_content(
 
 ```bash
 python run.py examples/hello.chevron           # Run a .chevron file
-python run.py examples/turboscribe.chevron --verify  # With SCP verification
+python run.py examples/turboscribe.chevron --verify  # With HL verification
 python repl.py                                 # Interactive REPL
 ```
 
@@ -311,7 +311,7 @@ python repl.py                                 # Interactive REPL
 
 | File | Purpose |
 |------|---------|
-| `forge.py` | **Decompose existing codebases** → SCP architecture |
+| `forge.py` | **Decompose existing codebases** → HL architecture |
 | `scp_bridge.py` | Generate AI-constrained prompts for any LLM |
 | `chevron/code_verifier.py` | Deterministic AST-based verification |
 | `chevron/test_generator.py` | Generate pytest tests from specs |
@@ -344,7 +344,7 @@ ERROR [line 15] no_global_state: Module-level mutable assignment: 'cache' (dict)
 ## Further Reading
 
 - [Nexus Guide](NEXUS_GUIDE.md) — Visual dashboard + Nexus CLI workflow
-- [README.md](README.md) — Full SCP theory and research background
+- [README.md](README.md) — Full HL theory and research background
 - [SPEC.md](SPEC.md) — Formal Chevron language specification
 - [EXTENSIONS.md](EXTENSIONS.md) — Module system, spec mode, type declarations
 - [SCP_TESTING.md](SCP_TESTING.md) — Auto-test generation details

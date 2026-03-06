@@ -1,6 +1,6 @@
-# TurboScribe × Chevron — SCP Case Study
+# TurboScribe × Chevron — HL Case Study
 
-> How the Spatial Constraint Protocol reduced a 110,000-token codebase to
+> How the Holographic Language reduced a 110,000-token codebase to
 > ~660 orthogonal tokens per AI prompt — restoring the Critical Energy Gap (ΔE > ln(N))
 > and **eliminating confabulation-driven regressions** that plague traditional AI code generation.
 
@@ -26,9 +26,9 @@ Every approach leads to the same failure: **AI-generated code that silently
 couples modules that were previously independent**, introducing regressions
 that only surface at runtime.
 
-## The SCP Solution
+## The HL Solution
 
-The Spatial Constraint Protocol (SCP) replaces "paste everything and hope"
+The Holographic Language (HL) replaces "paste everything and hope"
 with **orthogonal architectural contracts**. Instead of showing the AI
 your code (flooding the Partition Function Z with distractor tokens), you show it:
 
@@ -44,7 +44,7 @@ through context noise.
 
 ## TurboScribe Decomposition
 
-The monolithic `fast_engine.py` was decomposed into 9 isolated SCP modules:
+The monolithic `fast_engine.py` was decomposed into 9 isolated HL modules:
 
 ```
   ┌─────────────┐
@@ -103,8 +103,8 @@ The monolithic `fast_engine.py` was decomposed into 9 isolated SCP modules:
 │                    Context Window Usage                          │
 ├─────────────────────────────┬────────────────────────────────────┤
 │ TurboScribe full codebase   │  ~109,633 tokens  (438,533 bytes) │
-│ SCP full spec (all modules) │   ~5,920 tokens                   │
-│ SCP single module prompt    │     ~660 tokens   (avg)           │
+│ HL full spec (all modules) │   ~5,920 tokens                   │
+│ HL single module prompt    │     ~660 tokens   (avg)           │
 ├─────────────────────────────┼────────────────────────────────────┤
 │ Full-spec compression       │  18×                              │
 │ Per-module compression      │  166×                             │
@@ -121,7 +121,7 @@ The monolithic `fast_engine.py` was decomposed into 9 isolated SCP modules:
 - A 128K context window model never needs to page or truncate — it processes
   the entire module spec in one shot with massive room for chain-of-thought.
 
-## How SCP Prevents Regressions
+## How HL Prevents Regressions
 
 ### 1. RAG Denial
 
@@ -213,7 +213,7 @@ For each module, we specified:
 ### Step 4: Generate & Verify
 
 ```bash
-# Generate SCP prompt for any module
+# Generate HL prompt for any module
 python examples/turboscribe_example.py Transcriber
 
 # Generate + implement + verify with Gemini
@@ -241,10 +241,10 @@ python examples/turboscribe_example.py Transcriber --gemini
 
 ```
 chevron/
-├── scp_bridge.py                    # Core SCP Bridge (NOT modified)
+├── scp_bridge.py                    # Core HL Bridge (NOT modified)
 ├── examples/
 │   ├── turboscribe.chevron          # Architecture in Chevron glyph DSL
-│   ├── turboscribe_example.py       # Standalone TurboScribe SCP spec + CLI
+│   ├── turboscribe_example.py       # Standalone TurboScribe HL spec + CLI
 │   ├── TURBOSCRIBE_README.md        # This file
 │   └── gemini_example.py            # Generic Gemini integration example
 ```
@@ -256,7 +256,7 @@ codebase** before making a change. This causes the Partition Function (Z)
 to explode — attention probability mass dilutes, and the model confabulates
 by relaxing into pre-trained priors.
 
-SCP flips this: the AI sees **only the operating table** — the one module it
+HL flips this: the AI sees **only the operating table** — the one module it
 needs to implement, encoded with orthogonal Uiua embeddings that create steep
 attractor basins free of semantic cross-talk. The Weaver (System 2 rejection
 sampling) verifies structural orthogonality. The result is code that fits into

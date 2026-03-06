@@ -5,15 +5,18 @@ Uses Python's `ast` module to statically analyze generated code against
 SCP contracts. This replaces unreliable AI self-verification with
 deterministic AST analysis.
 
-This is the formal implementation of the Weaver function W(G) = 0:
-    W(G) = 0  ⟺  No undeclared coupling exists in the generated code.
+This is the formal implementation of Hom(A,B) ≅ 0:
+    Hom(A,B) ≅ 0  ⟺  No undeclared coupling exists in the generated code.
 
 Checks:
   1. No global mutable state
-  2. No forbidden imports
-  3. Side-effect freedom for Filter (Ө) and Witness (𓂀) functions
+  2. No forbidden imports (Hom(A,B) ≅ 0 enforcement)
+  3. Side-effect freedom for pure-constraint operators (⊕, ∂∩∅)
   4. Interface conformance (correct methods with matching signatures)
-  5. No undeclared cross-module references
+  5. No undeclared cross-module references (↦ direction enforcement)
+
+Rejection Format:
+  [SYSTEM 2 REJECTION]: <operator> <details>. Resample required.
 
 Dan Park | MagicPoint.ai | February 2026
 """
@@ -150,12 +153,12 @@ class CodeVerifier:
             violations.extend(self._check_forbidden_imports(tree, allowed_deps))
             violations.extend(self._check_interface_conformance(tree, contract))
 
-            # Glyph-specific checks
-            glyph_methods = {}
+            # Operator-specific checks (side-effect freedom)
+            operator_methods = {}
             for method in getattr(contract, 'methods', []):
-                glyph_methods[method.name] = method.glyph
+                operator_methods[method.name] = getattr(method, 'glyph', getattr(method, 'operator', ''))
 
-            violations.extend(self._check_side_effect_freedom(tree, glyph_methods))
+            violations.extend(self._check_side_effect_freedom(tree, operator_methods))
 
         return sorted(violations, key=lambda v: v.line)
 
@@ -251,34 +254,39 @@ class CodeVerifier:
         return violations
 
     # ─────────────────────────────────────────────────────────
-    #  Check 3: Side-Effect Freedom (Ө, 𓂀)
+    #  Check 3: Side-Effect Freedom (pure constraint operators)
     # ─────────────────────────────────────────────────────────
 
     def _check_side_effect_freedom(self, tree: ast.Module,
-                                    glyph_methods: dict[str, str]) -> list[CodeViolation]:
-        """For Filter (Ө) and Witness (𓂀) glyphs, reject I/O calls.
+                                    operator_methods: dict[str, str]) -> list[CodeViolation]:
+        """For operators governed by pure constraints (⊕ Direct Sum,
+        ∂∩∅ Topological Boundary), reject I/O calls.
 
-        Filter must be pure — no side effects.
-        Witness must only observe — no file writes, no network calls.
+        ⊕ Direct Sum methods must be pure — no side effects.
+        ∂∩∅ Boundary methods must only observe — no file writes, no network calls.
+        Ө and 𓂀 legacy operators are also supported for backward compat.
         """
         violations = []
-        pure_glyphs = {"Ө", "𓂀"}
+        # Operators that enforce purity / side-effect freedom
+        pure_operators = {"⊕", "∂∩∅", "Ө", "𓂀"}
 
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                method_glyph = glyph_methods.get(node.name)
-                if method_glyph and method_glyph in pure_glyphs:
+                method_op = operator_methods.get(node.name)
+                if method_op and method_op in pure_operators:
                     # Walk this function's body for I/O calls
                     for child in ast.walk(node):
                         if isinstance(child, ast.Call):
                             call_name = self._get_call_name(child)
                             if call_name and call_name in IO_FUNCTION_NAMES:
-                                glyph_name = "Filter" if method_glyph == "Ө" else "Witness"
+                                op_name = self._operator_display_name(method_op)
                                 violations.append(CodeViolation(
                                     SeverityLevel.ERROR, child.lineno, "SIDE_EFFECT",
-                                    f"Method '{node.name}' (governed by {method_glyph} {glyph_name}) "
+                                    f"[SYSTEM 2 REJECTION]: Method '{node.name}' "
+                                    f"(governed by {method_op} {op_name}) "
                                     f"contains I/O call '{call_name}'. "
-                                    f"{glyph_name} methods must be side-effect free."
+                                    f"{op_name} methods must be side-effect free. "
+                                    f"Resample required."
                                 ))
 
                         # Check for I/O module imports inside the function
@@ -291,8 +299,10 @@ class CodeVerifier:
                                 if name in IO_MODULE_NAMES or mod_name in IO_MODULE_NAMES:
                                     violations.append(CodeViolation(
                                         SeverityLevel.ERROR, child.lineno, "SIDE_EFFECT",
-                                        f"Method '{node.name}' (governed by {method_glyph}) "
-                                        f"imports I/O module '{name}'. Must be side-effect free."
+                                        f"[SYSTEM 2 REJECTION]: Method '{node.name}' "
+                                        f"(governed by {method_op}) "
+                                        f"imports I/O module '{name}'. Must be side-effect free. "
+                                        f"Resample required."
                                     ))
 
         return violations
@@ -342,6 +352,18 @@ class CodeVerifier:
                     ))
 
         return violations
+
+    @staticmethod
+    def _operator_display_name(op: str) -> str:
+        """Map operator symbols to human-readable display names."""
+        names = {
+            "⊕": "Direct Sum", "∂∩∅": "Topological Boundary",
+            "⊗": "Tensor Product", "↦": "Morphism",
+            "Hom≅0": "Null Morphism",
+            # Legacy compat
+            "Ө": "Filter", "𓂀": "Witness",
+        }
+        return names.get(op, op)
 
     # ─────────────────────────────────────────────────────────
     #  Helpers

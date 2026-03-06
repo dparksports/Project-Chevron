@@ -1,42 +1,52 @@
 """
-Chevron Glyph Registry
-======================
-Maps each Unicode glyph to its semantic primitive, origin lore,
-and execution behavior. This is the bijective singleton map:
-    ∀ l ∈ L, ∃! v ∈ V_L : f(l) = v
+Chevron Operator Registry — Non-Polysemic Topological DSL
+==========================================================
+Maps each Topo-Categorical mathematical operator to its semantic
+primitive, physics rationale, and verification behavior.
+
+These operators leverage "arXiv latent anchors" — mathematical symbols
+(⊗, ⊕, ↦, ∂, ∅) that possess deep, pristine, zero-polysemy embeddings
+in foundational LLMs trained on millions of LaTeX papers.
+
+Operator Reference:
+    Hom(A,B) ≅ 0   — Null Morphism (Strict Isolation)
+    A ↦ B           — Morphism / Functor (Directed Data Flow)
+    A ⊕ B           — Direct Sum (Decoupled Coexistence)
+    A ⊗ B           — Tensor Product (State Entanglement)
+    ∂A ∩ ∂B = ∅     — Topological Boundary (Interface Encapsulation)
 """
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Optional
 
 
-class GlyphType(Enum):
-    """The five fundamental Chevron primitives."""
-    ORIGIN   = auto()  # ◬  — The Origin (Rendlesham)
-    FOLD     = auto()  # ☾  — Fold Time (Roswell)
-    FILTER   = auto()  # Ө  — The Filter / Gate (Roswell)
-    WITNESS  = auto()  # 𓂀 — The Witness (Egyptian)
-    WEAVER   = auto()  # ☤  — The Weaver (Generic)
+class OperatorType(Enum):
+    """The five Topo-Categorical constraint operators."""
+    NULL_MORPHISM   = auto()  # Hom(A,B) ≅ 0  — Strict Isolation
+    MORPHISM        = auto()  # A ↦ B          — Directed Data Flow
+    DIRECT_SUM      = auto()  # A ⊕ B          — Decoupled Coexistence
+    TENSOR_PRODUCT  = auto()  # A ⊗ B          — State Entanglement
+    TOPO_BOUNDARY   = auto()  # ∂A ∩ ∂B = ∅    — Interface Encapsulation
 
 
 @dataclass(frozen=True)
-class GlyphInfo:
+class OperatorInfo:
     """
-    A Chevron glyph — a bijective singleton primitive.
+    A Topo-Categorical operator — a non-polysemic structural primitive.
 
-    Each glyph carries:
-      - symbol:      The Unicode character
+    Each operator carries:
+      - symbol:      The mathematical notation
       - name:        Human-readable name
-      - glyph_type:  The primitive type
-      - origin:      Lore origin (Rendlesham, Roswell, Egyptian, Generic)
-      - intent:      Why this glyph exists
-      - contract:    What it accepts and produces
-      - constraint:  What it must NEVER do
+      - op_type:     The operator type
+      - category:    Mathematical domain (Category Theory, Topology, Tensor)
+      - intent:      Why this operator exists
+      - contract:    What it enforces
+      - constraint:  What it must NEVER allow
     """
     symbol: str
     name: str
-    glyph_type: GlyphType
-    origin: str
+    op_type: OperatorType
+    category: str
     intent: str
     contract: str
     constraint: str
@@ -44,90 +54,100 @@ class GlyphInfo:
 
 
 # ─────────────────────────────────────────────────────────────
-#  THE GLYPH REGISTRY — The Five Primitives of Chevron
+#  THE OPERATOR REGISTRY — The Five Topo-Categorical Primitives
 # ─────────────────────────────────────────────────────────────
 
-GLYPH_REGISTRY: dict[str, GlyphInfo] = {
+OPERATOR_REGISTRY: dict[str, OperatorInfo] = {
 
-    "◬": GlyphInfo(
-        symbol="◬",
-        name="The Origin",
-        glyph_type=GlyphType.ORIGIN,
-        origin="Rendlesham",
-        intent="Program entry point. All threads spawn from here.",
-        contract="Accepts initial data → Produces a data stream",
-        constraint="Must appear exactly once per program. Must not be nested.",
-        description="Triangle with 3 Dots — The root from which all computation flows.",
+    "Hom≅0": OperatorInfo(
+        symbol="Hom(A,B) ≅ 0",
+        name="Null Morphism",
+        op_type=OperatorType.NULL_MORPHISM,
+        category="Category Theory",
+        intent="Strict isolation. Module A is mathematically forbidden from "
+               "importing, calling, or sharing state with Module B.",
+        contract="Accepts (source, target) → Enforces zero coupling",
+        constraint="No import, call, or shared state between source and target.",
+        description="Null Morphism — the morphism space between A and B is empty.",
     ),
 
-    "☾": GlyphInfo(
-        symbol="☾",
-        name="Fold Time",
-        glyph_type=GlyphType.FOLD,
-        origin="Roswell",
-        intent="Recursion. Feeds output back into input until base case.",
-        contract="Accepts (predicate, transform, value) → Produces final value",
-        constraint="Must always have a reachable base case. Must not mutate external state.",
-        description="Violet Crescent — Folds time by looping output to input.",
+    "↦": OperatorInfo(
+        symbol="↦",
+        name="Morphism",
+        op_type=OperatorType.MORPHISM,
+        category="Category Theory",
+        intent="Directed data flow. Data or control strictly flows from A to B.",
+        contract="Accepts (source, target) → Enforces unidirectional flow",
+        constraint="Reverse flow (B → A) is forbidden. Must be acyclic (DAG).",
+        description="Morphism / Functor — a structure-preserving directed map.",
     ),
 
-    "Ө": GlyphInfo(
-        symbol="Ө",
-        name="The Filter",
-        glyph_type=GlyphType.FILTER,
-        origin="Roswell",
-        intent="Conditional gate. Only data matching the shape passes through.",
-        contract="Accepts (predicate, data) → Produces filtered data",
-        constraint="Must never modify data that passes through. Reject, don't transform.",
-        description="Circle with Bar — The Gate that judges what may pass.",
+    "⊕": OperatorInfo(
+        symbol="⊕",
+        name="Direct Sum",
+        op_type=OperatorType.DIRECT_SUM,
+        category="Category Theory",
+        intent="Decoupled coexistence. A and B exist in the same environment "
+               "but maintain mutually exclusive state spaces.",
+        contract="Accepts (left, right) → Enforces state independence",
+        constraint="No shared state, singletons, or global mutation between A and B.",
+        description="Direct Sum — orthogonal state spaces, zero shared mutable state.",
     ),
 
-    "𓂀": GlyphInfo(
-        symbol="𓂀",
-        name="The Witness",
-        glyph_type=GlyphType.WITNESS,
-        origin="Egyptian",
-        intent="Observe the data stream without altering it.",
-        contract="Accepts any data → Logs it → Passes it through unchanged",
-        constraint="Must NEVER modify the data. Pure observation only.",
-        description="Eye of Horus — Watches the stream, bearing witness.",
+    "⊗": OperatorInfo(
+        symbol="⊗",
+        name="Tensor Product",
+        op_type=OperatorType.TENSOR_PRODUCT,
+        category="Tensor Mathematics",
+        intent="State entanglement. A and B are tightly coupled; a change in A "
+               "structurally mutates B.",
+        contract="Accepts (left, right) → Documents tight structural coupling",
+        constraint="Changes to either side must propagate. Cannot be decoupled "
+                   "without breaking the contract.",
+        description="Tensor Product — entangled state spaces, structural co-mutation.",
     ),
 
-    "☤": GlyphInfo(
-        symbol="☤",
-        name="The Weaver",
-        glyph_type=GlyphType.WEAVER,
-        origin="Generic",
-        intent="Merge/join two independent streams into one braided result.",
-        contract="Accepts list of values → Produces single merged value",
-        constraint="Must preserve all input data. Nothing may be lost in the weaving.",
-        description="Double Helix — Braids separate realities into one thread.",
+    "∂∩∅": OperatorInfo(
+        symbol="∂A ∩ ∂B = ∅",
+        name="Topological Boundary",
+        op_type=OperatorType.TOPO_BOUNDARY,
+        category="Topology",
+        intent="Interface encapsulation. A and B share no global state and must "
+               "communicate through a defined Abstract Interface.",
+        contract="Accepts (left, right) → Enforces abstract interface communication",
+        constraint="Zero direct concrete references. All communication via "
+                   "declared abstract interface only.",
+        description="Topological Boundary — disjoint boundaries, interface-only coupling.",
     ),
 }
 
 # Quick-access sets for the lexer
-GLYPH_CHARS = set(GLYPH_REGISTRY.keys())
-GLYPH_NAMES = {info.name: symbol for symbol, info in GLYPH_REGISTRY.items()}
+OPERATOR_CHARS = {"↦", "⊕", "⊗", "∂", "∩", "∅", "≅"}
+OPERATOR_NAMES = {info.name: key for key, info in OPERATOR_REGISTRY.items()}
+
+# Backward-compat aliases used by other modules
+GLYPH_REGISTRY = OPERATOR_REGISTRY
+GLYPH_CHARS = OPERATOR_CHARS
 
 
-def lookup(symbol: str) -> GlyphInfo | None:
-    """Look up a glyph by its Unicode symbol."""
-    return GLYPH_REGISTRY.get(symbol)
+def lookup(symbol: str) -> OperatorInfo | None:
+    """Look up an operator by its registry key."""
+    return OPERATOR_REGISTRY.get(symbol)
 
 
 def describe_all() -> str:
-    """Return a formatted table of all glyphs for REPL help."""
+    """Return a formatted table of all operators for REPL help."""
     lines = [
-        "╔══════════════════════════════════════════════════════════════╗",
-        "║              PROJECT CHEVRON — GLYPH REGISTRY               ║",
-        "╠══════╦════════════════╦════════════╦════════════════════════╣",
-        "║ Glyph║ Name           ║ Origin     ║ Intent                 ║",
-        "╠══════╬════════════════╬════════════╬════════════════════════╣",
+        "╔══════════════════════════════════════════════════════════════════════╗",
+        "║     PROJECT CHEVRON — TOPO-CATEGORICAL OPERATOR REGISTRY           ║",
+        "╠══════════════════╦═══════════════════╦══════════════════════════════╣",
+        "║ Operator         ║ Category          ║ Intent                       ║",
+        "╠══════════════════╬═══════════════════╬══════════════════════════════╣",
     ]
-    for symbol, info in GLYPH_REGISTRY.items():
-        name = info.name.ljust(14)
-        origin = info.origin.ljust(10)
-        intent = info.intent[:22].ljust(22)
-        lines.append(f"║  {symbol}   ║ {name} ║ {origin} ║ {intent} ║")
-    lines.append("╚══════╩════════════════╩════════════╩════════════════════════╝")
+    for key, info in OPERATOR_REGISTRY.items():
+        sym = info.symbol[:16].ljust(16)
+        cat = info.category.ljust(17)
+        intent = info.intent[:28].ljust(28)
+        lines.append(f"║ {sym} ║ {cat} ║ {intent} ║")
+    lines.append("╚══════════════════╩═══════════════════╩══════════════════════════════╝")
     return "\n".join(lines)

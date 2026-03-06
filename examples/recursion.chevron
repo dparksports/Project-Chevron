@@ -1,3 +1,4 @@
-# Recursion Example in Chevron
-# Fold Time: countdown from 10, subtracting 1 each step, until 0
-◬ 10 → ☾ {> 0} {- 1} → 𓂀
+# Recursion Example in Chevron v2.0 — Topo-Categorical DSL
+# Countdown from 10 using recursive morphism chain
+# Note: recursive fold is expressed as a pipeline with predicate transforms
+10 → {> 0} → {- 1}

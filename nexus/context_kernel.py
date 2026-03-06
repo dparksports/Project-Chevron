@@ -415,9 +415,9 @@ class SCPRetriever:
                         # Show signature only
                         inputs = ", ".join(method.inputs) if hasattr(method, 'inputs') else ""
                         output = getattr(method, 'output', 'Any')
-                        glyph = getattr(method, 'glyph', '')
-                        glyph_tag = f" [{glyph}]" if glyph else ""
-                        lines.append(f"def {method.name}({inputs}) -> {output}{glyph_tag}")
+                        op = getattr(method, 'operator', getattr(method, 'glyph', ''))
+                        op_tag = f" [{op}]" if op else ""
+                        lines.append(f"def {method.name}({inputs}) -> {output}{op_tag}")
                         if hasattr(method, 'constraint') and method.constraint:
                             lines.append(f"    # Constraint: {method.constraint}")
 
